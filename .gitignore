@@ -2,6 +2,9 @@
 # Dragon Ball Idle — Git Ignore Rules
 # ============================================
 
+# ----- Game assets from original APK (extract from DragonBall_WEB_20211216.apk) -----
+assets/
+
 # ----- Build outputs -----
 *.apk
 *.aab
