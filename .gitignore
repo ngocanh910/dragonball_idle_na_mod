@@ -1,0 +1,63 @@
+# ============================================
+# Dragon Ball Idle — Git Ignore Rules
+# ============================================
+
+# ----- Build outputs -----
+*.apk
+*.aab
+build/
+
+# ----- Apktool / Smali -----
+unknown/
+original/
+
+# ----- JADX output (regenerable) -----
+jadx_output/
+
+# ----- Decrypted game assets (regenerable) -----
+decrypted_assets/
+
+# ----- Review images (regenerable) -----
+review_images/
+
+# ----- Keystore & signing -----
+*.keystore
+*.jks
+
+# ----- Node.js server -----
+server/node_modules/
+server/package-lock.json
+
+# ----- OS files -----
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# ----- IDE files -----
+.idea/
+.vscode/
+*.iml
+
+# ----- Logs & temp -----
+*.log
+tmp/
+/tmp/
+
+# ----- Config backups -----
+assets/config.properties.backup
+assets/config_BS.properties.backup
+
+# ----- Workflow runtime files -----
+plans/*/status/events.ndjson
+plans/*/status/item-status.json
+plans/*/status/item-status.json.bak
+plans/*/context/project-context-snapshot.md
+plans/*/reports/bootstrap-report.json
+plans/*/reports/readiness-report.json
+plans/*/reports/quality-gate-report.*
+plans/reports/branches/
+
+# ----- Original APK (large) -----
+*.apk

@@ -1,0 +1,92 @@
+📋 Tổng quan dự án
+
+Tên app: Dragon Adventure idle (gốc là game DragonBall)
+Package: com.guan.wangys
+APK gốc: DragonBall_WEB_20211216.apk (build ngày 16/12/2021)
+Version: 1.0.1 (code 1) | SDK: min 21 → target 30
+File gốc: 9,902 files, 6,108 smali files
+
+---
+🏗️ Kiến trúc tổng thể
+
+┌───────────────┬────────────────────────────────────────────────────────────────────────────┐
+│  Thành phần   │                                  Chi tiết                                  │
+├───────────────┼───────────────────────────────────────────────┤
+│ Game Engine   │ Egret Engine (HTML5/Web game) - runtime-dex.jar (84K) + libegret.so (17MB) │                               ├───────────────┼───────────────────────────────────────────────┤
+│ Login/Account │ QuickGame SDK (Huawei 94Hi) + Facebook SDK + Google Sign-In                │                               ├───────────────┼───────────────────────────────────────────────┤
+│ Thanh toán    │ Google Play Billing v3.0.2 + Huawei IAP + Xiaomi/Vivo/Oppo                 │                               ├───────────────┼───────────────────────────────────────────────┤
+│ Tracking      │ AppsFlyer + Adjust SDK                                                     │
+├───────────────┼────────────────────────────────────────────────────────────────────────────┤
+│ Security      │ libgavesec.so (AES/SHA1 encryption)                                        │                               ├───────────────┼───────────────────────────────────────────────┤
+│ Backend       │ dragon.sjmobilegame.com:82 (main), configus.sjmobilegame.com (backup)      │                               └───────────────┴───────────────────────────────────────────────┘
+                                                                                                                             Luồng chạy:
+Application.onCreate() → registerActivityLifecycleCallbacks()
+    ↓                                                                                                                        LaunchActivity (màn hình splash + load config + x
+    ↓
+MainActivity → chứa EgretNativeAndroid → load game HTML5 từ Egret engine
+    ↓
+WebView render game (assets/game/*)                                                                                          
+---                                                                                                                          🧩 Mức độ obfuscation
+                                                                                                                             - Code game logic (com.zhuhuan.game): 35 files — /method đều là từ random: cointhreat,singersmooth, feedtonight, ironoriginhoblike,...)                                                                            - QuickGame SDK: 629 files — cũng bị obfuscated
+- Game assets: 2,529 files — tên file/thư mục bị mã hóa (VD: cottage_electric_gracious, stearines_fuel_arrow,...)
+- Các thư viện SDK: Facebook, Gson, ZXing, Firebase giữ nguyên tên (không bị obfuscated)
+
+---                                                                                                                          ⚠️ HIỆN TRẠNG: CHƯA THỂ BUILD & SỬA BÌNH THƯỜNG
+                                                                                                                             Lý do:
+
+1. ❌ Resource build lỗi: "First type is not attr!" — public.xml hiện tại để anim type trước attr, nhưng aapt (Android Asset Packaging Tool) yêu cầu attr phải là type đầu tiê
+2. ❌ Code bị obfuscated hoàn toàn: 352 files trong cointhreat/ + singersmooth/ (code core của game) đã bị ProGuard rename. Không thể đọc hiểu logic game một cách dễ dàng.
+3. ❌ Game assets bị mã hóa: file .bin, .data, tênh được đâu là code game thật sự.
+
+---
+🛠️ Để tiếp tục reverse đến mức có thể tự dựng lại
+
+Đây là roadmap gợi ý:
+
+┌────────────────────────┬──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│       Giai đoạn        │                       làm                                           │
+├────────────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ 1. Fix build           │ Sửa lỗi aapt bằng cáchhay vì Java 21, hoặc dùng                     │
+│                        │ docker-android-build, hoặc vá thủ công public.xml                                                │
+├────────────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ 2. Deobfuscate smali → │ Dùng JADX hoặc dex2jara readable thay vì smali                      │
+│  java                  │                                                                                                  │
+├────────────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ 3. Đọc game assets     │ Giải mã các file .bin/nativeEncrypt/nativeAES — cần RE ngược native │
+│                        │  library để tìm key giải mã                                                                      │
+├────────────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ 4. RE server API       │ Config base64 trỏ tới dragon.sjmobilegame.com:82 — cần phân tích smali để hiểu protocol API      │
+├────────────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ 5. Dựng backend        │ Từ API protocol đã RE de.js/Python                                  │
+├────────────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ 6. Dựng frontend       │ Giải mã Egret game ass lập                                          │
+└────────────────────────┴──────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+
+
+
+
+
+
+Quy trình build chuẩn (để sau này tự build lại):
+
+cd /home/admin1/Downloads/folder_code_smali
+
+# 1. Sửa IP trong config.properties (nếu đổi WiFi)
+# 2. Build
+apktool b . --use-aapt2 --output game.apk
+
+# 3. Zipalign trước
+zipalign -f -v 4 game.apk game_aligned.apk
+
+# 4. Sign với apksigner
+apksigner sign --ks debug.keystore --ks-pass pass:android --ks-key-alias debug game_aligned.apk
+
+# 5. Install
+adb install game_aligned.apk
+
+Cách chạy:
+
+1. Trên PC: cd server && node server.js
+2. Trên điện thoại: Mở game "Dragon Adventure idle" (icon mặc định, nhưng là bản mod)
+3. Game sẽ kết nối tới server local của bạn qua WiFi

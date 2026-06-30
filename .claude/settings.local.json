@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(rm -f fixed.apk)",
+      "Bash(zip -0 fixed.apk resources.arsc)",
+      "Bash(zip -r -X fixed.apk . -x resources.arsc \"*.apk\")",
+      "Bash(zipalign -f -v 4 fixed.apk /home/admin1/Downloads/folder_code_smali/game_mod_aligned.apk)",
+      "Read(//tmp/apk_fix/**)",
+      "Bash(rm -rf ./*)",
+      "Bash(unzip -o /home/admin1/Downloads/folder_code_smali/game_mod_v2.apk)",
+      "Bash(rm -f fixed_v2.apk)",
+      "Bash(zip -0 fixed_v2.apk resources.arsc)",
+      "Bash(zip -r -X fixed_v2.apk . -x resources.arsc \"*.apk\")",
+      "Bash(zipalign -f -v 4 fixed_v2.apk /home/admin1/Downloads/folder_code_smali/game_mod_v2_aligned.apk)",
+      "Bash(jarsigner -sigalg SHA256withRSA -digestalg SHA-256 -keystore /home/admin1/Downloads/folder_code_smali/debug.keystore -storepass android -keypass android /home/admin1/Downloads/folder_code_smali/game_mod_v2_aligned.apk debug)"
+    ]
+  }
+}
