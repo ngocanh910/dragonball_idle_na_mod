@@ -1,16 +1,19 @@
 {
-  "name": "dragonball-emulator-server",
-  "version": "1.0.0",
-  "description": "Local emulator server for DragonBall idle game",
-  "main": "server.js",
+  "name": "dragonball-idle-emulator",
+  "version": "2.0.0",
+  "description": "Local emulator server for Dragon Ball Idle — debug & mod platform",
+  "main": "src/index.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node server.js"
+    "start": "node src/index.js",
+    "dev": "DEBUG=true node src/index.js",
+    "debug": "node --inspect src/index.js"
   },
+  "keywords": ["dragonball", "idle", "emulator", "mod"],
+  "license": "MIT",
   "dependencies": {
-    "express": "^4.18.2",
-    "socket.io": "^4.6.0",
     "cors": "^2.8.5",
-    "lz-string": "^1.5.0"
+    "express": "^4.18.2",
+    "lz-string": "^1.5.0",
+    "socket.io": "^4.6.0"
   }
 }

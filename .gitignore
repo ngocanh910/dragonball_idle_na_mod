@@ -10,11 +10,13 @@ assets/
 *.aab
 *.idsig
 build/
+original/
 
 # ----- Apktool / Smali -----
 unknown/
-original/
 lib/
+smali/
+kotlin/
 
 # ----- JADX output (regenerable) -----
 jadx_output/
