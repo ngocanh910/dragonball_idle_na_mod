@@ -8,11 +8,13 @@ assets/
 # ----- Build outputs -----
 *.apk
 *.aab
+*.idsig
 build/
 
 # ----- Apktool / Smali -----
 unknown/
 original/
+lib/
 
 # ----- JADX output (regenerable) -----
 jadx_output/
@@ -64,3 +66,5 @@ plans/reports/branches/
 
 # ----- Original APK (large) -----
 *.apk
+
+# Workflow runtime files — generated, do not commit
