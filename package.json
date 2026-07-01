@@ -1,0 +1,12 @@
+{
+  "name": "dragonball-idle-debug",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Dragon Ball Idle — unified debug web app (client + emulator server)",
+  "scripts": {
+    "start": "node server/src/index.js",
+    "dev": "DEBUG=true node server/src/index.js",
+    "debug": "node --inspect server/src/index.js",
+    "preinstall": "cd server && npm install"
+  }
+}

@@ -11,6 +11,9 @@ const config = {
   // Game data paths
   gameDataDir: path.resolve(__dirname, '..', '..', '..', 'decrypted_assets', 'game_source', 'resource', 'json'),
   assetsDir: path.resolve(__dirname, '..', '..', '..', 'assets'),
+  clientDir: path.resolve(__dirname, '..', '..', '..', 'client'),
+  voyageDir: path.resolve(__dirname, '..', '..', '..', 'decrypted_assets', 'voyage_extracted'),
+  gameSourceDir: path.resolve(__dirname, '..', '..', '..', 'decrypted_assets', 'game_source'),
 
   // Game configuration
   serverName: 'Local Emulator',

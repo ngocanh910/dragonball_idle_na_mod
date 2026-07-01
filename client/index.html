@@ -1,0 +1,151 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>Dragon Ball Idle — Browser Debug</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="full-screen" content="true" />
+    <meta name="screen-orientation" content="portrait" />
+    <meta name="x5-fullscreen" content="true" />
+    <meta name="360-fullscreen" content="true" />
+    <style>
+        html, body {
+            -ms-touch-action: none;
+            background: #888888;
+            padding: 0;
+            border: 0;
+            margin: 0;
+            height: 100%;
+        }
+    </style>
+</head>
+
+<body>
+    <div style="margin: auto;width: 100%;height: 100%;" class="egret-player"
+         data-entry-class="Main"
+         data-orientation="auto"
+         data-scale-mode="fixedNarrow"
+         data-frame-rate="30"
+         data-content-width="720"
+         data-content-height="1280"
+         data-show-paint-rect="false"
+         data-multi-fingered="2"
+         data-show-fps="false" data-show-log="false"
+         data-show-fps-style="x:0,y:0,size:12,textColor:0xffffff,bgAlpha:0.9">
+    </div>
+
+<!-- ============================================================ -->
+<!-- Browser Boot: Native bridge mock (must load FIRST)           -->
+<!-- ============================================================ -->
+<script src="browser-boot.js"></script>
+
+<script>
+    // ── Script loader ────────────────────────────────────────
+    var loadScript = function (list, callback) {
+        var loaded = 0;
+        if (list.length === 0) { callback(); return; }
+        var loadNext = function () {
+            loadSingleScript(list[loaded], function () {
+                loaded++;
+                if (loaded >= list.length) {
+                    callback();
+                } else {
+                    loadNext();
+                }
+            })
+        };
+        loadNext();
+    };
+
+    var loadSingleScript = function (src, callback) {
+        var s = document.createElement('script');
+        s.async = false;
+        s.src = src;
+        s.addEventListener('load', function () {
+            s.parentNode.removeChild(s);
+            s.removeEventListener('load', arguments.callee, false);
+            callback();
+        }, false);
+        s.addEventListener('error', function () {
+            console.warn('[Loader] Failed to load: ' + src);
+            callback(); // continue loading even if one script fails
+        }, false);
+        document.body.appendChild(s);
+    };
+
+    // ── Game Source Manifest ─────────────────────────────────
+    // We load the FULL GAME directly (game_source), skipping the
+    // launcher/splash (voyage_extracted). The game_source has its
+    // own complete Egret engine and all game logic.
+    //
+    // Original Android flow:
+    //   1. voyage_extracted boots splash screen
+    //   2. Java code decrypts pschent.bin -> game_source
+    //   3. Java swaps WebView to load game_source
+    //
+    // Browser flow: load game_source directly.
+    var manifest = {
+        initial: [
+            // — Egret engine (game_source versions) —
+            "js/egret.min_d9413192.js",
+            "js/egret.web.min_b66ab113.js",
+            "js/game.min_16249d0f.js",
+            "js/tween.min_6c5a88f9.js",
+            "js/assetsmanager.min_2ef412b7.js",
+            "js/eui.min_493403ce.js",
+            "js/dragonBones.min_6252b9c4.js",
+            // — Game libraries —
+            "js/socket.io.min_57ea9db7.js",
+            "js/lz-string.min_896bee8b.js",
+            "js/md5.min_97e969ef.js",
+            "js/battlelogic.min_394b3477.js",
+            "js/blockmessage.min_4c0caf6b.js",
+            "js/default.thm_4d02a3c6.js"
+        ],
+        game: [
+            // — Main game code (4.7MB — full game logic) —
+            "js/main.min_7eae4d6e.js"
+        ]
+    };
+
+    // ── Load all scripts then boot Egret ─────────────────────
+    var allScripts = manifest.initial.concat(manifest.game);
+    console.log('[Loader] Loading ' + allScripts.length + ' scripts...');
+
+    loadScript(allScripts, function () {
+        console.log('[Loader] All ' + allScripts.length + ' scripts loaded');
+        console.log('[Loader] Booting Egret engine...');
+
+        // Register the startTsGame callback
+        // (same pattern as original index.html)
+        egret.ExternalInterface.addCallback("startTsGame", function (msg) {
+            var json = JSON.parse(msg);
+            window["screenSize"] = json.screenSize;
+            window["versionConfig"] = json.versionConfig;
+            window["uid"] = json.uid;
+            window["autoStart"] = json.autoStart;
+            egret.runEgret({
+                renderMode: "webgl",
+                audioType: 0,
+                calculateCanvasScaleFactor: function (context) {
+                    var backingStore = context.backingStorePixelRatio ||
+                        context.webkitBackingStorePixelRatio ||
+                        context.mozBackingStorePixelRatio ||
+                        context.msBackingStorePixelRatio ||
+                        context.oBackingStorePixelRatio ||
+                        context.backingStorePixelRatio || 1;
+                    return (window.devicePixelRatio || 1) / backingStore;
+                }
+            });
+        });
+
+        // Signal to the native bridge that we are ready.
+        // browser-boot.js intercepts this and triggers the callback.
+        egret.ExternalInterface.call("startTsGame", "start ts game");
+    });
+</script>
+
+</body>
+</html>
