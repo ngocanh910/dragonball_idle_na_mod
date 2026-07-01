@@ -5,36 +5,51 @@
 
 const { dispatch } = require('../handlers');
 const { fail } = require('../utils/response');
+const logStore = require('../services/log-store');
 
 function register(app) {
   // Main game API
   app.post('/api', (req, res) => {
+    const start = Date.now();
     const payload = parsePayload(req);
     const type = payload.type || 'unknown';
     const action = payload.action || 'unknown';
-    console.log(`[API]  type=${type}  action=${action}`, JSON.stringify(payload).substring(0, 120));
 
     try {
       const result = dispatch(payload);
+      const dur = Date.now() - start;
+      logStore.info('[API]', `${type}.${action}`, {
+        method: 'POST', path: '/api', status: 200, duration: dur,
+      });
       res.json(result);
     } catch (err) {
-      console.error(`[API]  Error: type=${type} action=${action}: ${err.message}`);
+      const dur = Date.now() - start;
+      logStore.error('[API]', `${type}.${action} — ${err.message}`, {
+        method: 'POST', path: '/api', status: 500, duration: dur, error: err,
+      });
       res.json(fail(500, err.message));
     }
   });
 
   // Catch-all for other POST paths the game might use
   app.post('/*', (req, res) => {
+    const start = Date.now();
     const payload = parsePayload(req);
     const type = payload.type || 'unknown';
     const action = payload.action || 'unknown';
-    console.log(`[API:*] ${req.path} type=${type} action=${action}`);
 
     try {
       const result = dispatch(payload);
+      const dur = Date.now() - start;
+      logStore.info('[API:*]', `${type}.${action}`, {
+        method: 'POST', path: req.path, status: 200, duration: dur,
+      });
       res.json(result);
     } catch (err) {
-      console.error(`[API:*] Error: ${err.message}`);
+      const dur = Date.now() - start;
+      logStore.error('[API:*]', `${type}.${action} — ${err.message}`, {
+        method: 'POST', path: req.path, status: 500, duration: dur, error: err,
+      });
       res.json(fail(500, err.message));
     }
   });

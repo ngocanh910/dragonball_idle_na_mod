@@ -4,10 +4,11 @@
 // ============================================================
 
 const { modHooks } = require('../../../mods/api');
+const logStore = require('../services/log-store');
 
 function register(io) {
   io.on('connection', (socket) => {
-    console.log(`[Socket]  New connection: ${socket.id}`);
+    logStore.info('[Socket]', `New connection: ${socket.id}`);
 
     // ── Verify challenge ────────────────────────────────────
     const challenge = Math.random().toString(36).substring(2, 15);
@@ -15,7 +16,7 @@ function register(io) {
 
     // ── Verify response ─────────────────────────────────────
     socket.on('verify', (data, callback) => {
-      console.log('[Socket]  Verify received');
+      logStore.info('[Socket]', `Verify received from ${socket.id}`);
 
       if (typeof callback === 'function') {
         callback({ ret: 0, msg: 'verified' });
@@ -29,14 +30,28 @@ function register(io) {
 
     // ── handler.process (main RPC) ──────────────────────────
     socket.on('handler.process', (data, callback) => {
-      console.log('[Socket]  handler.process:', JSON.stringify(data).substring(0, 200));
+      logStore.stats.totalSocketEvents++;
+      const start = Date.now();
 
-      // Let mods intercept/mutate the request
-      const modResult = modHooks.emit('socket:handler.process', data);
-      const response = modResult || { ret: 0, data: '{}' };
+      try {
+        const modResult = modHooks.emit('socket:handler.process', data);
+        const response = modResult || { ret: 0, data: '{}' };
+        const dur = Date.now() - start;
+        logStore.info('[Socket]', `handler.process OK (${dur}ms)`, {
+          method: 'WS', path: 'handler.process', duration: dur,
+        });
 
-      if (typeof callback === 'function') {
-        callback(response);
+        if (typeof callback === 'function') {
+          callback(response);
+        }
+      } catch (err) {
+        const dur = Date.now() - start;
+        logStore.error('[Socket]', `handler.process error: ${err.message}`, {
+          method: 'WS', path: 'handler.process', status: 500, duration: dur, error: err,
+        });
+        if (typeof callback === 'function') {
+          callback({ ret: 1, message: err.message });
+        }
       }
     });
 
@@ -45,9 +60,16 @@ function register(io) {
       // Game sends pong in response to server ping
     });
 
+    // ── Error ───────────────────────────────────────────────
+    socket.on('error', (err) => {
+      logStore.error('[Socket]', `Socket error on ${socket.id}: ${err.message}`, {
+        method: 'WS', path: socket.id, error: err,
+      });
+    });
+
     // ── Disconnect ──────────────────────────────────────────
-    socket.on('disconnect', () => {
-      console.log(`[Socket]  Disconnected: ${socket.id}`);
+    socket.on('disconnect', (reason) => {
+      logStore.info('[Socket]', `Disconnected: ${socket.id} (${reason})`);
     });
   });
 

@@ -29,10 +29,12 @@ function md5(input) {
 }
 
 /**
- * Simple XOR cipher used in asset name obfuscation.
+ * XOR encrypt/decrypt — symmetric cipher.
+ * Used by the game's LaunchActivity to secure config .bin responses.
+ * Key = "DragonBall" (10 bytes), XOR every byte cyclically.
  */
-function xorDecrypt(data, key) {
-  const buf = Buffer.from(data, 'binary');
+function xorEncrypt(plainText, key) {
+  const buf = Buffer.from(plainText, 'utf-8');
   const keyBytes = Buffer.from(key, 'utf-8');
   for (let i = 0; i < buf.length; i++) {
     buf[i] ^= keyBytes[i % keyBytes.length];
@@ -40,4 +42,4 @@ function xorDecrypt(data, key) {
   return buf;
 }
 
-module.exports = { xxteaDecrypt, md5, xorDecrypt };
+module.exports = { xxteaDecrypt, md5, xorEncrypt };
