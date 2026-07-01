@@ -129,5 +129,53 @@
     },
   };
 
+  // ── Mock window.getLoginServer ─────────────────────────
+  // The game calls this to get the server URL for connecting.
+  window.getLoginServer = function () {
+    var host = window.location.host || 'localhost:8080';
+    var url = 'http://' + host;
+    console.log('[BrowserBoot] getLoginServer() →', url);
+    return url;
+  };
+
+  // ── Mock window.getQueryStringByName ────────────────────
+  // The game uses this to parse URL query parameters.
+  window.getQueryStringByName = function (name) {
+    var match = new RegExp('[?&]' + name + '=([^&]*)').exec(window.location.search);
+    return match ? decodeURIComponent(match[1].replace(/\+/g, ' ')) : null;
+  };
+
+  // ── Mock window.getAppId ────────────────────────────────
+  // The game uses this to get the channel/app ID.
+  window.getAppId = function () {
+    return 'local_browser';
+  };
+
+  // ── Mock window.serverList ─────────────────────────────
+  // The game uses this as a server-name mapping lookup.
+  // In the Android app, this is set by the Java bridge.
+  window.serverList = {
+    1: 'Local Emulator',
+  };
+
+  // ── Inject cached server for auto-login ────────────────
+  // The game checks egret.localStorage for 'last_game_server'.
+  // We inject it so the auto-login flow triggers on boot.
+  try {
+    if (window.egret && window.egret.localStorage) {
+      var cached = window.egret.localStorage.getItem('last_game_server');
+      if (!cached) {
+        window.egret.localStorage.setItem('last_game_server', JSON.stringify({
+          username: 'browser_user',
+          password: 'game_origin',
+          lastServerID: '1'
+        }));
+        console.log('[BrowserBoot] Injected cached server for auto-login');
+      }
+    }
+  } catch (e) {
+    console.log('[BrowserBoot] Could not set cached server:', e.message);
+  }
+
   console.log('[BrowserBoot] Native bridge mock installed');
 })();

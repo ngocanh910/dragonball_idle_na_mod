@@ -8,5 +8,8 @@
     "dev": "DEBUG=true node server/src/index.js",
     "debug": "node --inspect server/src/index.js",
     "preinstall": "cd server && npm install"
+  },
+  "dependencies": {
+    "playwright": "^1.61.1"
   }
 }

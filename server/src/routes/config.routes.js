@@ -18,6 +18,7 @@ const XOR_KEY = 'DragonBall';
 
 // ── Setting JSON payload ─────────────────────────────────────
 function makeSettingPayload() {
+  const baseUrl = `http://${config.host}:${config.port}`;
   return JSON.stringify({
     sdkName: '',
     versionCode: 110,
@@ -27,9 +28,9 @@ function makeSettingPayload() {
       {
         sid: 'local',
         name: config.serverName,
-        url: `http://${config.host}:${config.port}`,
-        dungeonurl: `http://${config.host}:${config.port}`,
-        chaturl: `http://${config.host}:${config.port}`,
+        url: baseUrl,
+        dungeonurl: baseUrl,
+        chaturl: baseUrl,
         status: 'smooth',
         new: true,
         recommend: true,
@@ -43,6 +44,8 @@ function makeSettingPayload() {
     updateUrl: '',
     forceUpdate: false,
     review: false,
+    loginserver: baseUrl,
+    loginServer: baseUrl,
   });
 }
 

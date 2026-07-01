@@ -19,19 +19,40 @@ function get(urlPath) {
   });
 }
 
+// ── Helper: Wait for server to be ready ──────────────────────
+function waitForServer(retries = 30, delay = 200) {
+  return new Promise((resolve, reject) => {
+    function tryConnect(remaining) {
+      if (remaining <= 0) return reject(new Error('Server did not start in time'));
+      const req = http.get(`http://127.0.0.1:${PORT}/`, (res) => {
+        res.resume();
+        resolve();
+      });
+      req.on('error', () => {
+        setTimeout(() => tryConnect(remaining - 1), delay);
+      });
+      req.setTimeout(500, () => {
+        req.destroy();
+        setTimeout(() => tryConnect(remaining - 1), delay);
+      });
+    }
+    tryConnect(retries);
+  });
+}
+
 describe('Web App Refactoring Smoke Tests', () => {
   // Start server before tests
-  before((done) => {
+  before(async () => {
     console.log('[Test] Starting emulator server on port', PORT);
     serverProcess = spawn('node', [path.resolve(__dirname, '../server/src/index.js')], {
-      env: { ...process.env, PORT: PORT, MODS_ENABLED: 'false' }
+      env: { ...process.env, PORT: String(PORT), MODS_ENABLED: 'false' },
+      stdio: ['ignore', 'pipe', 'pipe'],
     });
 
     serverProcess.stdout.on('data', (data) => {
       const output = data.toString();
       if (output.includes('DRAGON BALL IDLE') || output.includes('Local Emulator Server')) {
-        console.log('[Test] Server started successfully');
-        done();
+        console.log('[Test] Server banner detected');
       }
     });
 
@@ -41,8 +62,16 @@ describe('Web App Refactoring Smoke Tests', () => {
 
     serverProcess.on('error', (err) => {
       console.error('[Server Spawn Error]', err);
-      done(err);
     });
+
+    // Wait until server is actually accepting connections
+    try {
+      await waitForServer();
+      console.log('[Test] Server is accepting connections');
+    } catch (err) {
+      console.error('[Test] Failed to start server:', err.message);
+      throw err;
+    }
   });
 
   // Stop server after tests
@@ -54,8 +83,20 @@ describe('Web App Refactoring Smoke Tests', () => {
   });
 
   describe('Static Game Client Serving', () => {
-    it('GET / serves client index.html', async () => {
+    it('GET / redirects to /debug dashboard', async () => {
       const r = await get('/');
+      assert.strictEqual(r.status, 302);
+      assert.strictEqual(r.headers.location, '/debug');
+    });
+
+    it('GET /debug serves the debug dashboard', async () => {
+      const r = await get('/debug');
+      assert.strictEqual(r.status, 200);
+      assert.ok(r.body.includes('Debug Dashboard') || r.body.includes('DRAGON BALL'));
+    });
+
+    it('GET /index.html serves game client directly', async () => {
+      const r = await get('/index.html');
       assert.strictEqual(r.status, 200);
       assert.ok(r.body.includes('egret-player'));
       assert.ok(r.body.includes('browser-boot.js'));

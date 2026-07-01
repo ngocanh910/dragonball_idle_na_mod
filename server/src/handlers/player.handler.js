@@ -1,15 +1,19 @@
 // ============================================================
 // Player / User Handler
+// Handles: login, user info, server list, enter game
 // ============================================================
 
 const { success } = require('../utils/response');
 const config = require('../config');
 
 function handle(payload) {
-  const { action } = payload;
+  const { action, type } = payload;
+  const actionLower = (action || '').toLowerCase();
+  const typeLower = (type || '').toLowerCase();
 
-  // Login
-  if (!action || action === 'login' || action === 'loginGame') {
+  // ── Login ────────────────────────────────────────────────────
+  if (!action || actionLower === 'login' || actionLower === 'logingame') {
+    const baseUrl = `http://${config.host}:${config.port}`;
     return success({
       userId: payload.userId || 1001,
       serverId: config.defaultServerId,
@@ -22,11 +26,16 @@ function handle(payload) {
       diamond: 99999,
       stamina: 120,
       exp: 0,
-      战斗力: 50000,
+      fightPower: 50000,
+      sdk: 'game_origin',
+      userType: 0,
+      channelCode: 'local',
+      channelName: 'local',
+      language: 'en',
       serverItem: {
-        url: `http://127.0.0.1:${config.port}`,
-        dungeonurl: `http://127.0.0.1:${config.port}`,
-        chaturl: `http://127.0.0.1:${config.port}`,
+        url: baseUrl,
+        dungeonurl: baseUrl,
+        chaturl: baseUrl,
         serverId: config.defaultServerId,
         online: true,
         offlineReason: '',
@@ -39,8 +48,43 @@ function handle(payload) {
     });
   }
 
-  // Player info
-  if (action === 'info' || action === 'getInfo') {
+  // ── Get Server List ──────────────────────────────────────────
+  // Action variations: GetServerList, getServerList, serverlist, get_server_list
+  if (actionLower === 'getserverlist' || actionLower === 'serverlist') {
+    const baseUrl = `http://${config.host}:${config.port}`;
+    return success({
+      history: [],
+      serverList: [
+        {
+          sid: 'local',
+          name: config.serverName,
+          url: baseUrl,
+          dungeonurl: baseUrl,
+          chaturl: baseUrl,
+          status: 'smooth',
+          new: true,
+          recommend: true,
+          serverId: config.defaultServerId,
+          offlineReason: '',
+          online: true,
+        },
+      ],
+    });
+  }
+
+  // ── Enter Game ──────────────────────────────────────────────
+  if (actionLower === 'entergame') {
+    return success({
+      userId: payload.userId || 1001,
+      serverTime: Math.floor(Date.now() / 1000),
+      dailyReset: false,
+      loginDays: 1,
+      lastLoginTime: Math.floor(Date.now() / 1000),
+    });
+  }
+
+  // ── Player info ──────────────────────────────────────────────
+  if (actionLower === 'info' || actionLower === 'getinfo') {
     return success({
       userId: 1001,
       nickname: 'Player',
@@ -55,8 +99,8 @@ function handle(payload) {
     });
   }
 
-  // Update profile
-  if (action === 'update' || action === 'setInfo') {
+  // ── Update profile ──────────────────────────────────────────
+  if (actionLower === 'update' || actionLower === 'setinfo') {
     return success({ updated: true });
   }
 
