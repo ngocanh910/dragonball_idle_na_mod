@@ -20,6 +20,7 @@ const logStore = require('../services/log-store');
 
 // ── Config ───────────────────────────────────────────────────
 const ASSETS_GAME_DIR = path.resolve(__dirname, '..', '..', '..', 'assets', 'game');
+const VOYAGE_DIR = path.resolve(__dirname, '..', '..', '..', 'decrypted_assets', 'voyage_extracted');
 
 // Known obfuscated root directories
 const ASSET_ROOTS = [
@@ -202,6 +203,19 @@ function createFallbackHandler() {
     if (req.method !== 'GET' && req.method !== 'HEAD') return next();
     const reqPath = req.path;
 
+    // ── Hero stand animation frames ────────────────────────
+    // The RES module creates URLs from resource keys for frames
+    // like "hero_stand_1201.10000". These don't exist in assets.
+    if (reqPath.match(/^\/hero_stand_\d+\.\d+$/)) {
+      logStore.info('[Proxy]', `Hero stand frame placeholder: ${reqPath}`);
+      const TRANSPARENT_PNG = Buffer.from(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+        'base64'
+      );
+      res.type('image/png');
+      return res.send(TRANSPARENT_PNG);
+    }
+
     // ── Try direct VVCC lookup ────────────────────────────
     // Standard resource paths: /resource/assets/image/...
     let obfuscatedPath = vvcc.lookup(reqPath);
@@ -244,9 +258,73 @@ function createFallbackHandler() {
       }
       logStore.warn('[VVCC]', `Mapped file not found on disk: ${cleanPath}`);
     } else {
+      const ext = path.extname(reqPath).toLowerCase();
+
+      // ── Find missing files via language/path fallback ─────
+      // The game requests zh_cn paths, but files may only exist
+      // in en/ or public/ directories (or with extra path segments).
+      if (['.json', '.fnt'].includes(ext)) {
+        const gameResDir = path.resolve(__dirname, '..', '..', '..', 'decrypted_assets', 'game_source', 'resource');
+        const relaPath = reqPath.replace('/resource/', '');
+
+        // Build lookup variants: zh_cn → en → public
+        const variants = [
+          relaPath,
+          relaPath.replace('zh_cn', 'en'),
+          relaPath.replace('zh_cn', 'public'),
+        ];
+
+        // JSON DragonBones: extra segment kaichangdonghua/kaichangzhandouxiangguan/
+        if (ext === '.json') {
+          variants.push(
+            relaPath.replace('dragon_animation/', 'dragon_animation/kaichangdonghua/kaichangzhandouxiangguan/'),
+            relaPath.replace('zh_cn/dragon_animation/', 'en/dragon_animation/kaichangdonghua/kaichangzhandouxiangguan/'),
+            relaPath.replace('zh_cn/dragon_animation/', 'public/dragon_animation/kaichangdonghua/kaichangzhandouxiangguan/')
+          );
+        }
+
+        for (const v of variants) {
+          const filePath = path.join(gameResDir, v);
+          if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+            logStore.info('[Proxy]', `Found at alternate path: ${v}`);
+            return res.sendFile(filePath);
+          }
+        }
+
+        // Last resort for JSON: return empty valid structure for DragonBones
+        if (ext === '.json') {
+          logStore.warn('[Proxy]', `JSON not found: ${reqPath} — returning empty structure`);
+          if (reqPath.endsWith('_ske.json')) return res.json({ version: '5.5', compatibleVersion: '5.5', armature: [] });
+          if (reqPath.endsWith('_tex.json')) return res.json({ SubTexture: [], width: 0, height: 0, name: '', imagePath: '' });
+          return res.json({});
+        }
+
+        // FNT not found anywhere: send the zh_cn version anyway (static mount may 404)
+        logStore.warn('[Proxy]', `FNT not found: ${reqPath} — returning empty`);
+        return res.type('text/plain').send('');
+      }
+
       // Return a 1×1 transparent PNG for missing images to
       // prevent the Egret renderer from crashing on 404s
-      const ext = path.extname(reqPath).toLowerCase();
+      if (['.mp3'].includes(ext)) {
+        // Try to find in voyage_extracted assets_ts first
+        const musicFilePath = path.join(VOYAGE_DIR, 'resource', 'assets_ts', 'music', path.basename(reqPath));
+        if (fs.existsSync(musicFilePath) && fs.statSync(musicFilePath).isFile()) {
+          logStore.info('[Proxy]', `Music served from assets_ts: ${path.basename(reqPath)}`);
+          return res.sendFile(musicFilePath);
+        }
+        // Silent MP3 placeholder (single MPEG1 Layer3 frame)
+        logStore.info('[Proxy]', `Silent MP3 sent for: ${path.basename(reqPath)}`);
+        const SILENT_MP3 = Buffer.from(
+          '//uQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+          'base64'
+        );
+        res.type('audio/mpeg');
+        return res.send(SILENT_MP3);
+      }
+
+      // Return a 1×1 transparent PNG for missing images to
+      // prevent the Egret renderer from crashing on 404s
       if (['.png', '.jpg', '.jpeg', '.gif', '.webp'].includes(ext) ||
           reqPath.match(/_\w+$/) // ends with _ext (Egret RES convention)
       ) {

@@ -1,5 +1,5 @@
 // ============================================================
-// Browser Boot — Native Bridge Mock for Egret Engine
+// Browser Boot â€” Native Bridge Mock for Egret Engine
 // ============================================================
 //
 // This script mocks the Android native bridge (JNI) interface
@@ -24,7 +24,7 @@
   var _origAddCallback = null;
   var _origCall = null;
 
-  // ── Mock addCallback ─────────────────────────────────────
+  // ── Mock addCallback ────────────────────────────────────â”€
   // The game registers JS functions that the Android side calls.
   // We store them and invoke them ourselves.
   function mockAddCallback(name, fn) {
@@ -42,17 +42,17 @@
         // In Android, the Java side would respond by calling
         // the "startTsGame" callback with config JSON.
         // We trigger it ourselves after a short delay.
-        console.log('[BrowserBoot] Game requested startTsGame — triggering boot');
+        console.log('[BrowserBoot] Game requested startTsGame â€” triggering boot');
         triggerGameBoot();
         break;
 
       case 'sendLog':
-        // Analytics/telemetry log — safe to ignore
+        // Analytics/telemetry log â€” safe to ignore
         // console.log('[BrowserBoot] sendLog:', data);
         break;
 
       case 'peiNative':
-        // In-app purchase request — simulate instant success
+        // In-app purchase request â€” simulate instant success
         console.log('[BrowserBoot] Purchase requested:', data);
         simulatePurchase(data);
         break;
@@ -63,7 +63,7 @@
     }
   }
 
-  // ── Boot the game engine ─────────────────────────────────
+  // ── Boot the game engine ────────────────────────────────â”€
   function triggerGameBoot() {
     var payload = JSON.stringify({
       screenSize: { width: 720, height: 1280 },
@@ -82,7 +82,7 @@
     }, 100);
   }
 
-  // ── Simulate in-app purchase ─────────────────────────────
+  // ── Simulate in-app purchase ────────────────────────────â”€
   function simulatePurchase(data) {
     try {
       var parsed = JSON.parse(data);
@@ -122,14 +122,14 @@
     configurable: true,
   });
 
-  // ── Also mock egret_native if referenced ─────────────────
+  // ── Also mock egret_native if referenced ────────────────â”€
   window.egret_native = window.egret_native || {
     NativeDisplayObject: {
       setSourceToNativeBitmapData: function () {},
     },
   };
 
-  // ── Mock window.getLoginServer ─────────────────────────
+  // ── Mock window.getLoginServer ────────────────────────â”€
   // The game calls this to get the server URL for connecting.
   window.getLoginServer = function () {
     var host = window.location.host || 'localhost:8080';
@@ -151,7 +151,7 @@
     return 'local_browser';
   };
 
-  // ── Mock window.serverList ─────────────────────────────
+  // ── Mock window.serverList ────────────────────────────â”€
   // The game uses this as a server-name mapping lookup.
   // In the Android app, this is set by the Java bridge.
   window.serverList = {
@@ -177,7 +177,7 @@
     console.log('[BrowserBoot] Could not set cached server:', e.message);
   }
 
-  // ── Mock loadJsonFunc (synchronous) ─────────────────────────
+  // ── Mock loadJsonFunc (synchronous) ────────────────────────â”€
   // The game calls window.loadJsonFunc(key) synchronously to load
   // JSON data from the Egret resource system.
   //
@@ -196,24 +196,33 @@
     var url = map[key];
 
     if (!url) {
-      // Fallback: guess pattern (won't work for all resources)
+      // Strip _json suffix to get base path
       var path = key;
       if (path.slice(-5) === '_json') path = path.slice(0, -5);
-      url = '/resource/' + path + '.json';
+
+      // Try #1: /resource/json/... (game data JSON files â€” 207 of them)
+      var urls = [
+        '/resource/json/' + path + '.json',
+        '/resource/' + path + '.json',
+      ];
+    } else {
+      var urls = [url];
     }
 
-    try {
-      var xhr = new XMLHttpRequest();
-      xhr.open('GET', url, false); // synchronous
-      xhr.overrideMimeType('application/json');
-      xhr.send(null);
-      if (xhr.status >= 200 && xhr.status < 300) {
-        return JSON.parse(xhr.responseText);
+    for (var i = 0; i < urls.length; i++) {
+      try {
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', urls[i], false); // synchronous
+        xhr.overrideMimeType('application/json');
+        xhr.send(null);
+        if (xhr.status >= 200 && xhr.status < 300) {
+          return JSON.parse(xhr.responseText);
+        }
+      } catch (e) {
+        // Try next URL on failure
       }
-      console.warn('[BrowserBoot] loadJsonFunc:', key, 'HTTP', xhr.status);
-    } catch (e) {
-      console.warn('[BrowserBoot] loadJsonFunc:', key, '✗', e.message);
     }
+    console.warn('[BrowserBoot] loadJsonFunc:', key, 'failed all', urls.length, 'URLs');
     return {}; // empty stub to prevent null-ref crashes
   }
 
@@ -224,5 +233,229 @@
     return data;
   };
 
+  // ── Pre-cache critical JSON data (async) ──────────────────â”€
+  // Hero data is ~1.3MB and takes time to load via sync XHR.
+  // Pre-fetch it so it's in cache when the game requests it.
+  (function prefetchJson() {
+    var keys = ['hero', 'heroWakeUp', 'heroLevelAttr', 'heroQualityParam', 'heroTypeParam', 'heroEvolve', 'constant', 'skill'];
+    for (var i = 0; i < keys.length; i++) {
+      (function (name) {
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', '/resource/json/' + name + '.json', true); // async
+        xhr.overrideMimeType('application/json');
+        xhr.onload = function () {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            _jsonCache[name + '_json'] = JSON.parse(xhr.responseText);
+            console.log('[BrowserBoot] Pre-cached:', name + '_json');
+          }
+        };
+        xhr.onerror = function () {};
+        xhr.send();
+      })(keys[i]);
+    }
+  })();
+
+  // ── Ensure HerosManager always has at least one hero ────â”€
+  // We wrap readByData so herosInfo never ends up empty,
+  // and poll to catch the initial empty state quickly.
+  function injectDefaultHero(mgr) {
+    if (!mgr || !mgr.herosInfo) return;
+    // Check if herosInfo has entries
+    var empty = true;
+    for (var k in mgr.herosInfo) { empty = false; break; }
+    if (!empty) return;
+
+    // Inject a hero object — hero 1205 has real images (icon, stand, etc.)
+    mgr.herosInfo[1] = {
+      heroId: 1,
+      heroDisplayId: 1205,
+      heroStar: 1,
+      expeditionMaxLevel: 0,
+      heroLocalAttt: {
+        typeIcon: 'new_skill_png',
+        heroIconLong: 'hero_icon_1205_long_png',
+        qualityIconLong: 'new_blue_long_png',
+        qualityBar: 'new_blue_long_bar_png',
+        qualityStand: 'new_blue_stand_png',
+        heroName: 'Tortoise',
+        quality: 'blue',
+        heroStand: 'hero_stand_1205_png,hero_stand_1205',
+        heroBack: 'hero_back_1205_png,hero_back_1205',
+        heroPicture: 'hero_picture_1205,hero_picture_1205',
+        mainTag: '',
+        clientType: 'hero',
+      },
+      heroBaseAttr: {
+        level: 1, exp: 0, power: 100,
+        hp: 1000, attack: 50, armor: 25, speed: 10, maxlevel: 120,
+      },
+      heroClass: 0,
+      heroType: 0,
+      heroQuality: 5,
+      skills: { allSkills: {} },
+    };
+    // Also add to heroslist for getHeroList
+    if (mgr.heroslist && Array.isArray(mgr.heroslist) && mgr.heroslist.indexOf(1) < 0) {
+      mgr.heroslist.push(1);
+    }
+    console.log('[BrowserBoot] Injected default hero into herosInfo');
+  }
+
+  // Poll aggressively
+  setInterval(function ensureHero() {
+    try {
+      var hm = window.egret && window.egret.getDefinitionByName && window.egret.getDefinitionByName('HerosManager');
+      if (!hm || !hm.getInstance) return;
+      var mgr = hm.getInstance();
+      if (!mgr) return;
+      // Patch readByData to re-inject hero after it runs
+      if (mgr.readByData && !mgr._readByDataPatched) {
+        var origRead = mgr.readByData;
+        mgr.readByData = function (e) {
+          origRead.call(this, e);
+          injectDefaultHero(this);
+        };
+        mgr._readByDataPatched = true;
+        console.log('[BrowserBoot] Patched readByData');
+      }
+      injectDefaultHero(mgr);
+    } catch (e) {}
+  }, 100);
+
   console.log('[BrowserBoot] Native bridge mock installed');
+
+  // ── Patch sound methods after game scripts load ──────────
+  // The game tries to play MP3 files through the Egret RES
+  // module. Most sound resource keys are not registered in
+  // default.res.json, so RES.getRes() returns undefined →
+  // calling .play() on undefined crashes.
+  //
+  // We continuously patch all sound-related methods as they
+  // get registered by the game scripts.
+  function patchAllSound() {
+    // 0. Patch addChild to safely handle null (DragonBones fallback)
+    if (window.egret && window.egret.DisplayObjectContainer && window.egret.DisplayObjectContainer.prototype) {
+      var _origAddChild = window.egret.DisplayObjectContainer.prototype.addChild;
+      if (_origAddChild && !_origAddChild.__patched) {
+        window.egret.DisplayObjectContainer.prototype.addChild = function (child) {
+          if (!child) { return child; }
+          return _origAddChild.call(this, child);
+        };
+        window.egret.DisplayObjectContainer.prototype.addChild.__patched = true;
+      }
+    }
+
+    // 1a. Patch RES.getResByUrl to handle hero animation frames
+    if (window.RES && window.RES.getResByUrl) {
+      var origUrl = window.RES.getResByUrl;
+      window.RES.getResByUrl = function (url, callback, thisObj, type) {
+        // Hero stand animation frames (hero_stand_NNNN.10000 etc) don't exist
+        if (typeof url === 'string' && url.match(/hero_stand_\d+\.\d+$/)) {
+          var img = new window.egret.Texture();
+          if (callback) callback.call(thisObj || this, img);
+          return;
+        }
+        return origUrl.call(this, url, callback, thisObj, type);
+      };
+    }
+
+    // 1b. Patch RES.getRes to return a safe stub for missing sounds
+    if (window.RES && window.RES.getRes) {
+      var orig = window.RES.getRes;
+      window.RES.getRes = function (key) {
+        var res = orig(key);
+        if (res) return res;
+        if (typeof key === 'string' && key.match(/_(mp3|wav|ogg)$/)) {
+          // console.log('[BrowserBoot] RES.getRes stub for:', key);
+          return { play: function () { return { volume: 0, once: function () {} }; } };
+        }
+        return res;
+      };
+    }
+    // 2. No-op sound methods on any loaded class prototype
+    for (var key in window) {
+      var proto = window[key] && window[key].prototype;
+      if (!proto) continue;
+      var hasPlaySound = typeof proto.playSound === 'function';
+      var hasPlayMusic = typeof proto.PlayMusic === 'function';
+      var hasIphoneClick = typeof proto.iphoneClickMusic === 'function';
+      if (hasPlaySound || hasPlayMusic || hasIphoneClick) {
+        if (hasPlaySound) { proto.playSound = function () {};  }
+        if (hasPlayMusic) { proto.PlayMusic = function () {}; }
+        if (hasIphoneClick) { proto.iphoneClickMusic = function () {};
+       }
+      }
+    }
+  }
+
+  // Run patch immediately and keep running every second
+  // (game classes load asynchronously via Egret's require system)
+  patchAllSound();
+  setInterval(patchAllSound, 1000);
+
+  // ── Patch setAllHeroList via Egret reflection ────────────
+  // Ensure HeroList has at least one hero entry.
+  setInterval(function patchSetAllHero() {
+    try {
+      var cls = window.egret && window.egret.getDefinitionByName && window.egret.getDefinitionByName('BattleStartViewData');
+      if (!cls || !cls.prototype || cls.prototype.__SetAllHeroPatched) return;
+      var orig = cls.prototype.setAllHeroList;
+      if (typeof orig !== 'function') return;
+      cls.prototype.setAllHeroList = function (e) {
+        orig.call(this, e);
+        if (!this.HeroList || this.HeroList.length === 0) {
+          console.log('[BrowserBoot] HeroList empty after setAllHeroList â€” injecting default');
+          this.HeroList = [{ isBattle: false, heroId: 1, lineUp: false, hasLinkOnBattle: false }];
+        }
+      };
+      cls.prototype.__SetAllHeroPatched = true;
+      console.log('[BrowserBoot] Patched setAllHeroList');
+    } catch (e) {}
+  }, 1500);
+
+  // ── Patch imageAnimation on any prototype ────────────────
+  // heroStand uses "image_png,animBase" format. If animBase
+  // is undefined, imageAnimation crashes on .slice().
+  // Guard the input parameter.
+  setInterval(function patchImageAnim() {
+    for (var k in window) {
+      var p = window[k] && window[k].prototype;
+      if (!p || typeof p.imageAnimation !== "function" || p.__imgAnimPatched) continue;
+      (function (orig) {
+        p.imageAnimation = function (e, t, n, o, a) {
+          if (!e || typeof e !== "string") { return Promise.resolve(); }
+          return orig.call(this, e, t, n, o, a);
+        };
+      })(p.imageAnimation);
+      p.__imgAnimPatched = true;
+      console.log("[BrowserBoot] Patched imageAnimation");
+    }
+  }, 2000);
+
+  // ── Patch TSDragonBones.createArmature ────────────────────
+  // When a DragonBones ske.json is missing, createArmature
+  // returns null → .animation.play() on null crashes.
+  // We wrap createArmature to return a dummy sprite.
+  setInterval(function patchDragonBones() {
+    try {
+      var cls = window.egret && window.egret.getDefinitionByName && window.egret.getDefinitionByName('TSDragonBones');
+      if (!cls) return;
+      var inst = cls.Instance && cls.Instance();
+      if (!inst || inst.__createArmPatched) return;
+      var origCreate = inst.createArmature;
+      if (typeof origCreate !== 'function') return;
+      inst.createArmature = function (name, x, y) {
+        var result = origCreate.call(this, name, x, y);
+        if (result) return result;
+        console.log('[BrowserBoot] DB dummy for:', name);
+        var dummy = new window.egret.Sprite();
+        dummy.animation = { play: function () {}, stop: function () {} };
+        dummy.once = function (evt, fn, t) { if (fn) setTimeout(fn.bind(t || this), 100); };
+        return dummy;
+      };
+      inst.__createArmPatched = true;
+      console.log('[BrowserBoot] Patched TSDragonBones.createArmature');
+    } catch (e) {}
+  }, 2000);
 })();
+
