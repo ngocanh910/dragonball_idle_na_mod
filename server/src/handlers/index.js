@@ -33,13 +33,15 @@ const HANDLERS = {
 
 /**
  * Route a game API request to the appropriate handler.
+ * Type matching is case-insensitive ("User" → "user").
  *
  * @param {object} payload - The parsed request body { type, action, … }
  * @returns {object|null} Response object, or null if unhandled.
  */
 function dispatch(payload) {
   const { type, action } = payload;
-  const handler = HANDLERS[type];
+  const typeLower = (type || '').toLowerCase();
+  const handler = HANDLERS[type] || HANDLERS[typeLower];
 
   if (handler) {
     const result = handler.handle(payload);

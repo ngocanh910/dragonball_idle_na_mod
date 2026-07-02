@@ -1,0 +1,105 @@
+- generic [ref=e2]:
+  - heading "🐉 Dragon Ball Idle — Debug Dashboard" [level=1] [ref=e3]
+  - heading "Emulator server real-time monitor" [level=2] [ref=e4]
+  - generic [ref=e5]:
+    - generic [ref=e6]:
+      - text: "Server:"
+      - strong [ref=e8]: 5m 17s
+    - generic [ref=e9]:
+      - text: "Port:"
+      - strong [ref=e10]: "8080"
+    - generic [ref=e11]:
+      - text: "GameData:"
+      - strong [ref=e12]: 434 collections
+    - generic [ref=e13]:
+      - text: "Mods:"
+      - strong [ref=e14]: Unlimited Diamonds,Unlock All Heroes loaded
+  - generic [ref=e15]:
+    - generic [ref=e16]:
+      - generic [ref=e17]: "2"
+      - generic [ref=e18]: Requests
+    - generic [ref=e19]:
+      - generic [ref=e20]: "0"
+      - generic [ref=e21]: Errors
+    - generic [ref=e22]:
+      - generic [ref=e23]: 1ms
+      - generic [ref=e24]: Avg Response
+    - generic [ref=e25]:
+      - generic [ref=e26]: 1ms
+      - generic [ref=e27]: P95 Response
+    - generic [ref=e28]:
+      - generic [ref=e29]: "0"
+      - generic [ref=e30]: Socket Events
+  - generic [ref=e31]:
+    - generic [ref=e32]:
+      - heading "📋 Request Log" [level=2] [ref=e33]
+      - generic [ref=e34]:
+        - button "Clear" [ref=e35] [cursor=pointer]
+        - generic [ref=e36]:
+          - checkbox "Auto-scroll" [checked] [ref=e37]
+          - text: Auto-scroll
+    - generic [ref=e38]:
+      - combobox [ref=e39]:
+        - option "All levels" [selected]
+        - option "🔴 Errors only"
+        - option "🟡 Warnings only"
+        - option "🔵 Info only"
+      - textbox "Search path, message..." [ref=e40]
+    - table [ref=e42]:
+      - rowgroup [ref=e43]:
+        - row "Time Level Method Path / Tag Status Duration Message" [ref=e44]:
+          - columnheader "Time" [ref=e45]
+          - columnheader "Level" [ref=e46]
+          - columnheader "Method" [ref=e47]
+          - columnheader "Path / Tag" [ref=e48]
+          - columnheader "Status" [ref=e49]
+          - columnheader "Duration" [ref=e50]
+          - columnheader "Message" [ref=e51]
+      - rowgroup [ref=e52]:
+        - row "01:01:29.573 info GET /debug 200 1ms GET /debug" [ref=e53]:
+          - cell "01:01:29.573" [ref=e54]
+          - cell "info" [ref=e55]:
+            - generic [ref=e56]: info
+          - cell "GET" [ref=e57]:
+            - generic [ref=e58]: GET
+          - cell "/debug" [ref=e59]
+          - cell "200" [ref=e60]
+          - cell "1ms" [ref=e61]
+          - cell "GET /debug" [ref=e62]
+        - row "01:01:29.568 info GET / 302 1ms GET /" [ref=e63]:
+          - cell "01:01:29.568" [ref=e64]
+          - cell "info" [ref=e65]:
+            - generic [ref=e66]: info
+          - cell "GET" [ref=e67]:
+            - generic [ref=e68]: GET
+          - cell / [ref=e69]
+          - cell "302" [ref=e70]
+          - cell "1ms" [ref=e71]
+          - cell "GET /" [ref=e72]
+  - generic [ref=e73]:
+    - heading "🧪 Quick Test" [level=2] [ref=e75]
+    - generic [ref=e76]:
+      - button "POST /api login — type=login, action=login" [ref=e77] [cursor=pointer]:
+        - generic [ref=e78]: POST /api
+        - generic [ref=e79]: login — type=login, action=login
+      - button "POST /api hero list — type=hero, action=list" [ref=e80] [cursor=pointer]:
+        - generic [ref=e81]: POST /api
+        - generic [ref=e82]: hero list — type=hero, action=list
+      - button "POST /api item list — type=backpack, action=list" [ref=e83] [cursor=pointer]:
+        - generic [ref=e84]: POST /api
+        - generic [ref=e85]: item list — type=backpack, action=list
+      - button "POST /api skill list — type=skill, action=list" [ref=e86] [cursor=pointer]:
+        - generic [ref=e87]: POST /api
+        - generic [ref=e88]: skill list — type=skill, action=list
+      - button "POST /api equip list — type=equip, action=list" [ref=e89] [cursor=pointer]:
+        - generic [ref=e90]: POST /api
+        - generic [ref=e91]: equip list — type=equip, action=list
+      - button "GET config setting_Android.bin — server config" [ref=e92] [cursor=pointer]:
+        - generic [ref=e93]: GET config
+        - generic [ref=e94]: setting_Android.bin — server config
+      - button "POST /api unknown — type=??? (fallback test)" [ref=e95] [cursor=pointer]:
+        - generic [ref=e96]: POST /api
+        - generic [ref=e97]: unknown — type=??? (fallback test)
+      - button "POST /api force error — bad JSON test" [ref=e98] [cursor=pointer]:
+        - generic [ref=e99]: POST /api
+        - generic [ref=e100]: force error — bad JSON test

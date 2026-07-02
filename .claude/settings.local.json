@@ -14,7 +14,19 @@
       "Bash(zipalign -f -v 4 fixed_v2.apk /home/admin1/Downloads/folder_code_smali/game_mod_v2_aligned.apk)",
       "Bash(jarsigner -sigalg SHA256withRSA -digestalg SHA-256 -keystore /home/admin1/Downloads/folder_code_smali/debug.keystore -storepass android -keypass android /home/admin1/Downloads/folder_code_smali/game_mod_v2_aligned.apk debug)",
       "Bash(curl -s http://192.168.51.146:9090/api/debug/all)",
-      "Bash(python3 -c ' *)"
+      "Bash(python3 -c ' *)",
+      "Bash(node -e \"console.log\\(require\\('net'\\)\\)\")",
+      "Bash(node -e \"console.log\\(require\\('socket.io-client/package.json'\\).version\\)\")",
+      "Bash(node --test test/login.test.js)",
+      "Bash(node -e ' *)",
+      "Bash(node --test test/smoke.test.js)",
+      "Bash(node -e \"process.kill\\(require\\('child_process'\\).execSync\\('netstat -ano | findstr :8089'\\).toString\\(\\).trim\\(\\).split\\(/\\\\s+/\\).pop\\(\\)\\); console.log\\('killed'\\);\")",
+      "Bash(node --test test/login.test.js test/smoke.test.js)",
+      "Bash(node -e \"try{require\\('playwright'\\);console.log\\('playwright available'\\)}catch\\(e\\){console.log\\('not found'\\)}\")",
+      "Bash(node -e \"try{require\\('@playwright/test'\\);console.log\\('@playwright/test available'\\)}catch\\(e\\){console.log\\('not found'\\)}\")",
+      "Bash(npm install *)",
+      "Bash(npx playwright *)",
+      "Bash(node test/login-e2e.test.js)"
     ]
   }
 }

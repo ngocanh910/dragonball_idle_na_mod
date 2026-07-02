@@ -63,7 +63,17 @@ registerAll(app);
 // ── Socket.IO ────────────────────────────────────────────────
 socketHandler.register(io);
 
-// ── Static files (game assets) ───────────────────────────────
+// ── Static files (game client and assets) ────────────────────
+app.use('/', express.static(config.clientDir));
+
+// Cascade mounts for /js (looks in voyage_extracted first, then game_source)
+app.use('/js', express.static(path.join(config.voyageDir, 'js')));
+app.use('/js', express.static(path.join(config.gameSourceDir, 'js')));
+
+// Cascade mounts for /resource (looks in voyage_extracted first, then game_source)
+app.use('/resource', express.static(path.join(config.voyageDir, 'resource')));
+app.use('/resource', express.static(path.join(config.gameSourceDir, 'resource')));
+
 if (fs.existsSync(config.assetsDir)) {
   app.use('/assets', express.static(config.assetsDir));
 }

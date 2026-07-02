@@ -3,8 +3,9 @@
 // Manages real-time communication with the game client.
 // ============================================================
 
-const { modHooks } = require('../../../mods/api');
+const modHooks = require('../../../mods/api');
 const logStore = require('../services/log-store');
+const { dispatch } = require('../handlers');
 
 function register(io) {
   io.on('connection', (socket) => {
@@ -17,11 +18,9 @@ function register(io) {
     // ── Verify response ─────────────────────────────────────
     socket.on('verify', (data, callback) => {
       logStore.info('[Socket]', `Verify received from ${socket.id}`);
-
       if (typeof callback === 'function') {
         callback({ ret: 0, msg: 'verified' });
       }
-
       socket.emit('Notify', {
         type: 'verified',
         data: { userId: 1001, serverTime: Math.floor(Date.now() / 1000) },
@@ -29,42 +28,47 @@ function register(io) {
     });
 
     // ── handler.process (main RPC) ──────────────────────────
+    // The game sends all its API calls through this socket event.
+    // Payload format: { type, action, userId, ... }
     socket.on('handler.process', (data, callback) => {
-      logStore.stats.totalSocketEvents++;
+      if (logStore.stats) logStore.stats.totalSocketEvents++;
       const start = Date.now();
+      let response;
+
+      // Inject the browser-facing host (from the socket handshake) so
+      // handlers generate URLs the browser can actually reach.
+      // Without this, serverItem.url defaults to config.publicHost
+      // (127.0.0.1) which is unreachable from a remote browser.
+      const clientHost = socket.handshake && socket.handshake.headers && socket.handshake.headers.host;
+      if (data && typeof data === 'object' && clientHost && !data._clientHost) {
+        data._clientHost = clientHost;
+      }
 
       try {
-        const modResult = modHooks.emit('socket:handler.process', data);
-        const response = modResult || { ret: 0, data: '{}' };
-        const dur = Date.now() - start;
-        logStore.info('[Socket]', `handler.process OK (${dur}ms)`, {
-          method: 'WS', path: 'handler.process', duration: dur,
-        });
-
-        if (typeof callback === 'function') {
-          callback(response);
+        // Try to dispatch via the standard game handler system
+        response = dispatch(data || {});
+        if (!response) {
+          // If no handler matched, try mod hooks
+          response = modHooks.emit('socket:handler.process', data) || { ret: 0, data: '{}' };
         }
+        const dur = Date.now() - start;
+        logStore.info('[Socket]', `handler.process OK ${(data && data.type) || '?'}.${(data && data.action) || '?'} (${dur}ms)`);
       } catch (err) {
         const dur = Date.now() - start;
-        logStore.error('[Socket]', `handler.process error: ${err.message}`, {
-          method: 'WS', path: 'handler.process', status: 500, duration: dur, error: err,
-        });
-        if (typeof callback === 'function') {
-          callback({ ret: 1, message: err.message });
-        }
+        logStore.error('[Socket]', `handler.process error: ${err.message}`);
+        response = { ret: 1, message: err.message };
+      }
+      if (typeof callback === 'function') {
+        callback(response);
       }
     });
 
     // ── Ping keep-alive ─────────────────────────────────────
-    socket.on('pong', () => {
-      // Game sends pong in response to server ping
-    });
+    socket.on('pong', () => {});
 
     // ── Error ───────────────────────────────────────────────
     socket.on('error', (err) => {
-      logStore.error('[Socket]', `Socket error on ${socket.id}: ${err.message}`, {
-        method: 'WS', path: socket.id, error: err,
-      });
+      logStore.error('[Socket]', `Socket error on ${socket.id}: ${err.message}`);
     });
 
     // ── Disconnect ──────────────────────────────────────────

@@ -68,5 +68,5 @@ plans/reports/branches/
 
 # ----- Original APK (large) -----
 *.apk
-
+/node_modules
 # Workflow runtime files — generated, do not commit
