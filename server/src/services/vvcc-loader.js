@@ -11,26 +11,44 @@ let vvcc = null;
 let vvccTc = null;
 
 function load() {
-  const vvccPath = path.resolve(__dirname, '..', '..', '..', 'decrypted_assets', 'vvcc_fixed.json');
+  // Primary: vvcc_fixed.json (clean copy)
+  // Fallback: vvcc.json (may have trailing garbage)
+  const vvccFixedPath = path.resolve(__dirname, '..', '..', '..', 'decrypted_assets', 'vvcc_fixed.json');
+  const vvccPath = path.resolve(__dirname, '..', '..', '..', 'decrypted_assets', 'vvcc.json');
   const vvccTcPath = path.resolve(__dirname, '..', '..', '..', 'decrypted_assets', 'vvcc_tc.json');
 
-  if (fs.existsSync(vvccPath)) {
-    try {
-      vvcc = JSON.parse(fs.readFileSync(vvccPath, 'utf8'));
-    } catch (e) {
-      console.warn(`[VVCC] Failed to parse vvcc.json: ${e.message}`);
-    }
-  }
-
-  if (fs.existsSync(vvccTcPath)) {
-    try {
-      vvccTc = JSON.parse(fs.readFileSync(vvccTcPath, 'utf8'));
-    } catch (e) {
-      console.warn(`[VVCC] Failed to parse vvcc_tc.json: ${e.message}`);
-    }
-  }
+  vvcc = loadJsonLenient(vvccFixedPath) || loadJsonLenient(vvccPath);
+  vvccTc = loadJsonLenient(vvccTcPath);
 
   console.log(`[VVCC] Loaded ${vvcc ? Object.keys(vvcc).length : 0} + ${vvccTc ? Object.keys(vvccTc).length : 0} mappings`);
+}
+
+/**
+ * Parse JSON file, tolerating trailing garbage data.
+ * Falls back to truncating at last '}' if full parse fails.
+ */
+function loadJsonLenient(filePath) {
+  if (!fs.existsSync(filePath)) return null;
+  try {
+    return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+  } catch (e) {
+    // Some files (vvcc.json) have trailing garbage bytes after valid JSON.
+    // Find last } and truncate.
+    try {
+      const content = fs.readFileSync(filePath, 'utf8');
+      const lastBrace = content.lastIndexOf('}');
+      if (lastBrace > 0) {
+        const fixed = content.substring(0, lastBrace + 1);
+        const obj = JSON.parse(fixed);
+        console.warn(`[VVCC] Fixed trailing garbage in ${path.basename(filePath)}`);
+        return obj;
+      }
+    } catch (e2) {
+      // fall through
+    }
+    console.warn(`[VVCC] Failed to parse ${path.basename(filePath)}: ${e.message}`);
+    return null;
+  }
 }
 
 /**

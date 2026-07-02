@@ -35,6 +35,15 @@ function register(io) {
       const start = Date.now();
       let response;
 
+      // Inject the browser-facing host (from the socket handshake) so
+      // handlers generate URLs the browser can actually reach.
+      // Without this, serverItem.url defaults to config.publicHost
+      // (127.0.0.1) which is unreachable from a remote browser.
+      const clientHost = socket.handshake && socket.handshake.headers && socket.handshake.headers.host;
+      if (data && typeof data === 'object' && clientHost && !data._clientHost) {
+        data._clientHost = clientHost;
+      }
+
       try {
         // Try to dispatch via the standard game handler system
         response = dispatch(data || {});

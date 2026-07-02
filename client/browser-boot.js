@@ -177,5 +177,52 @@
     console.log('[BrowserBoot] Could not set cached server:', e.message);
   }
 
+  // ── Mock loadJsonFunc (synchronous) ─────────────────────────
+  // The game calls window.loadJsonFunc(key) synchronously to load
+  // JSON data from the Egret resource system.
+  //
+  // Key format: "XXX_json" → URL from _resourceMap (pre-built
+  // from default.res.json). The map handles all prefixes:
+  //   language-cn_json  → /resource/language/language-cn.json
+  //   heroEvolve_json   → /resource/json/heroEvolve.json
+  //   1402_tex_json     → /resource/assets/.../1402_tex.json
+  //
+  // Without _resourceMap, we fall back to guessing the URL.
+  var _jsonCache = {};
+
+  function syncFetchJson(key) {
+    // Use pre-built map if available
+    var map = window._resourceMap || {};
+    var url = map[key];
+
+    if (!url) {
+      // Fallback: guess pattern (won't work for all resources)
+      var path = key;
+      if (path.slice(-5) === '_json') path = path.slice(0, -5);
+      url = '/resource/' + path + '.json';
+    }
+
+    try {
+      var xhr = new XMLHttpRequest();
+      xhr.open('GET', url, false); // synchronous
+      xhr.overrideMimeType('application/json');
+      xhr.send(null);
+      if (xhr.status >= 200 && xhr.status < 300) {
+        return JSON.parse(xhr.responseText);
+      }
+      console.warn('[BrowserBoot] loadJsonFunc:', key, 'HTTP', xhr.status);
+    } catch (e) {
+      console.warn('[BrowserBoot] loadJsonFunc:', key, '✗', e.message);
+    }
+    return {}; // empty stub to prevent null-ref crashes
+  }
+
+  window.loadJsonFunc = function (key) {
+    if (_jsonCache[key] !== undefined) return _jsonCache[key];
+    var data = syncFetchJson(key);
+    _jsonCache[key] = data;
+    return data;
+  };
+
   console.log('[BrowserBoot] Native bridge mock installed');
 })();

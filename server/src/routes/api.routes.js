@@ -61,14 +61,21 @@ function register(app) {
  */
 function parsePayload(req) {
   const raw = req.body.data || req.body;
+  let payload;
   if (typeof raw === 'string') {
     try {
-      return JSON.parse(raw);
+      payload = JSON.parse(raw);
     } catch {
-      return { raw };
+      payload = { raw };
     }
+  } else {
+    payload = raw;
   }
-  return raw;
+  // Inject the browser-facing host so handlers generate reachable URLs
+  if (payload && typeof payload === 'object' && req.headers.host) {
+    payload._clientHost = req.headers.host;
+  }
+  return payload;
 }
 
 module.exports = { register };

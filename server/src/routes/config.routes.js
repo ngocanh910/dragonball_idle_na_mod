@@ -17,8 +17,12 @@ const { xorEncrypt } = require('../utils/encryption');
 const XOR_KEY = 'DragonBall';
 
 // ── Setting JSON payload ─────────────────────────────────────
-function makeSettingPayload() {
-  const baseUrl = `http://${config.host}:${config.port}`;
+function makeSettingPayload(req) {
+  // Use the browser-facing host from the request header so the game
+  // connects to a URL it can actually reach
+  const baseUrl = req && req.headers && req.headers.host
+    ? `http://${req.headers.host}`
+    : `http://${config.publicHost}:${config.port}`;
   return JSON.stringify({
     sdkName: '',
     versionCode: 110,
@@ -66,19 +70,19 @@ function register(app) {
   // Game format: {EntryPoint}/setting_{sdkName}_Android.bin
   // sdkName can be empty → setting__Android.bin, or "BS" → setting_BS_Android.bin
   // Use wildcard to match all variants
-  app.get('/lzceshi/native_setting/Android/setting*Android.bin', (_req, res) => {
+  app.get('/lzceshi/native_setting/Android/setting*Android.bin', (req, res) => {
     logStore.info('[Config]', 'GET setting .bin (XOR encrypted)', {
       method: 'GET', path: '/lzceshi/.../setting*.bin', status: 200,
     });
-    sendXorEncrypted(res, makeSettingPayload());
+    sendXorEncrypted(res, makeSettingPayload(req));
   });
 
   // Also handle the BS (Backup Server) endpoints
-  app.get('/bs/db/android/setting*Android.bin', (_req, res) => {
+  app.get('/bs/db/android/setting*Android.bin', (req, res) => {
     logStore.info('[Config]', 'GET BS setting .bin (XOR encrypted)', {
       method: 'GET', path: '/bs/.../setting*.bin', status: 200,
     });
-    sendXorEncrypted(res, makeSettingPayload());
+    sendXorEncrypted(res, makeSettingPayload(req));
   });
 
   // ── SDK config .bin endpoints (XOR encrypted) ─────────────
@@ -103,13 +107,19 @@ function register(app) {
       method: 'ALL', path: '/lzceshi/.../loginchecknative', status: 200,
     });
 
+    // Use the browser-facing host from the request header so the game
+    // connects to a URL it can actually reach
+    const baseUrl = req.headers.host
+      ? `http://${req.headers.host}`
+      : `http://${config.publicHost}:${config.port}`;
+
     res.type('text/plain').send(JSON.stringify({
       code: 0,
       msg: 'success',
-      loginServer: `http://${config.host}:${config.port}`,
-      serverUrl: `http://${config.host}:${config.port}`,
-      socketUrl: `http://${config.host}:${config.port}`,
-      teamServerHttpUrl: `http://${config.host}:${config.port}`,
+      loginServer: baseUrl,
+      serverUrl: baseUrl,
+      socketUrl: baseUrl,
+      teamServerHttpUrl: baseUrl,
     }));
   });
 }

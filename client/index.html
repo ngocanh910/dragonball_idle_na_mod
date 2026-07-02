@@ -37,6 +37,12 @@
     </div>
 
 <!-- ============================================================ -->
+<!-- Resource Map: key → URL mapping from default.res.json        -->
+<!-- Must load BEFORE browser-boot.js so loadJsonFunc can use it  -->
+<!-- ============================================================ -->
+<script src="resource-map.js"></script>
+
+<!-- ============================================================ -->
 <!-- Browser Boot: Native bridge mock (must load FIRST)           -->
 <!-- ============================================================ -->
 <script src="browser-boot.js"></script>
