@@ -34,12 +34,16 @@ const MIME = {
 };
 
 // Build the list of on-disk candidates for a requested /resource path.
+// IMPORTANT: for zh_cn requests we prefer en/ then public/ BEFORE the zh_cn
+// original, so the UI stays English even when Chinese assets exist on disk.
 function candidates(relPath) {
-  const variants = [
-    relPath,
-    relPath.replace('zh_cn', 'en'),
-    relPath.replace('zh_cn', 'public'),
-  ];
+  const variants = relPath.includes('zh_cn')
+    ? [
+        relPath.replace('zh_cn', 'en'),
+        relPath.replace('zh_cn', 'public'),
+        relPath, // zh_cn original as last resort
+      ]
+    : [relPath];
   // DragonBones opening-animation heroes live under an extra segment
   if (relPath.endsWith('.json') && relPath.includes('dragon_animation/')) {
     const seg = 'dragon_animation/kaichangdonghua/kaichangzhandouxiangguan/';

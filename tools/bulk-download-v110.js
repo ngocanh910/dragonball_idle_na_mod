@@ -17,7 +17,9 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.resolve(__dirname, '..');
-const MANIFEST = path.join(ROOT, 'real-art', 'resource', 'default.res.json');
+// Default to the ENGLISH manifest (default.res-en.json) so the crawl pulls
+// English UI + the full public set. Override with MANIFEST env if needed.
+const MANIFEST = path.join(ROOT, 'real-art', 'resource', process.env.MANIFEST || 'default.res-en.json');
 const OUT_DIR = path.join(ROOT, 'real-art', 'resource');
 const CDN_BASE = process.env.CDN_BASE || 'https://dragonh5cdn.popoh5.com/bs/resource';
 const CONCURRENCY = parseInt(process.env.CONCURRENCY, 10) || 24;

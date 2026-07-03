@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.5] - 2026-07-04
+
+### Fixed (UI reverted to English + complete, de-duplicated hero art)
+- **Regression cause:** the v110 bulk crawl (1.2.4) used the *base* manifest `default.res.json`
+  (1544 zh_cn assets, 0 en). Once real Chinese assets landed on disk, the middleware's `zh_cn→en`
+  fallback stopped firing (the zh_cn file now existed), so the UI (which is image/bitmap-font-based)
+  rendered **Chinese**. Incomplete art also caused duplicate/blank hero cards.
+- **Fix 1 — en-first locale preference.** `real-art.routes.js` and `cdn-proxy.routes.js` now try
+  `en/` then `public/` **before** the `zh_cn/` original for any `zh_cn` request, so English art always
+  wins even when Chinese files are cached. Verified: `zh_cn/bitMapFont/main5.png` now serves the 7921 B
+  English font, not the 11638 B Chinese one.
+- **Fix 2 — crawl the ENGLISH manifest.** `tools/bulk-download-v110.js` now defaults to
+  `default.res-en.json` (**13345 assets** vs the base's 7844; 2337 en + 10706 public, 0 zh_cn). Pulled the
+  device `language/` folder too. `real-art/` grew to **~600 MB**; only 2 assets missing (mock configs).
+- **Verified (Playwright, 0 pageerrors):** home (Top-up/Welfare/Month Pass/Friend/Clan/Quest/Bag/Hero…)
+  and hero collection (ALL/DEF/ATK/SKILL, Rank, Back/List/Hero Shard/Illustration) and the God Evolve
+  codex (God Evolve, 0/159) all render in **English** again.
+- **Hero art coverage:** 231 `hero_icon_long` + 232 `hero_icon_short`, **distinct** per hero (spot-checked
+  1001/1205/1403/1600/1901/1309/1906 → different sizes, no dup). IDs like 1701/1801/2001 that still show
+  blank are **not in the v110 manifest and 404 on the CDN** — heroes that don't exist in this game version
+  (game-side gap, not an extraction miss).
+- **Gotcha reinforced:** the Chinese-UI symptom persisted through several restarts because a stale node
+  kept :8080 bound with old code. `taskkill //F //PID` + confirming the port is free BEFORE relaunching
+  (ideally via a managed background task) is mandatory — Node has no hot-reload.
+
 ## [1.2.4] - 2026-07-04
 
 ### Added (Full v110 Art Set — matched to the user's actual app)

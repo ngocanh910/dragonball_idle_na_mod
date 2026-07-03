@@ -44,11 +44,14 @@ const missing = new Set();
 // Same locale/segment variants the local real-art layer uses, so a
 // zh_cn request can resolve against the CDN's en/ + public/ layout.
 function candidates(relPath) {
-  const variants = [
-    relPath,
-    relPath.replace('zh_cn', 'en'),
-    relPath.replace('zh_cn', 'public'),
-  ];
+  // Prefer en/ then public/ over the zh_cn original so the UI stays English.
+  const variants = relPath.includes('zh_cn')
+    ? [
+        relPath.replace('zh_cn', 'en'),
+        relPath.replace('zh_cn', 'public'),
+        relPath,
+      ]
+    : [relPath];
   if (relPath.endsWith('.json') && relPath.includes('dragon_animation/')) {
     const seg = 'dragon_animation/kaichangdonghua/kaichangzhandouxiangguan/';
     variants.push(
