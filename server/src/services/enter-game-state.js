@@ -21,6 +21,8 @@
  * @param {object} payload - The enterGame request payload.
  * @returns {object} Game-state object safe for UserDataParser.saveUserData.
  */
+const heroRoster = require('./hero-roster');
+
 function buildEnterGameState(payload) {
   const userId = payload.userId || 1001;
   const now = Math.floor(Date.now() / 1000);
@@ -60,49 +62,24 @@ function buildEnterGameState(payload) {
     },
 
     // ── setBackpack: e.totalProps._items (for-in) ──────────────
-    totalProps: { _items: {} },
+    // Player level is stored as an item count (PLAYERLEVELID=104), read
+    // via ItemsCommonSingleton.getItemNum(104) everywhere the game checks
+    // level-gated features. Exp (PLAYEREXPERIENCEID=103) is set to the
+    // level-200 threshold (userUpgrade.json expNeeded) so the level/exp
+    // pair is internally consistent instead of showing 200 with 0 exp.
+    totalProps: {
+      _items: {
+        1: { _id: 104, _num: 200 }, // PLAYERLEVELID
+        2: { _id: 103, _num: 4659000 }, // PLAYEREXPERIENCEID
+      },
+    },
     backpackLevel: 1,
 
     // ── HerosManager.readByData: e.heros._heros (for-in) ───────
+    // Roster is locked to heroes with real bundled art (see
+    // services/hero-roster.js). SetHeroDataToModel reads each entry.
     heros: {
-      // Hero 1001 (Goku) — needed so HerosManager populates hero list
-      // for battle lineup selection. The format matches what
-      // SetHeroDataToModel expects.
-      _heros: {
-        1: {
-          _heroId: 1,
-          _heroDisplayId: 1205, // Must have an entry in heroWakeUp.json + real images
-          _heroStar: 1,
-          _heroTag: '',
-          _fragment: 0,
-          _expeditionMaxLevel: 0,
-          _superSkillResetCount: 0,
-          _potentialResetCount: 0,
-          _superSkillLevel: [0, 0, 0],
-          _potentialLevel: [0, 0, 0, 0],
-          _heroBaseAttr: {
-            _level: 1,
-            _exp: 0,
-            _power: 100,
-            _hp: 1000,
-            _attack: 50,
-            _armor: 25,
-            _speed: 10,
-            _hit: 0, _dodge: 0, _block: 0,
-            _damageReduce: 0, _armorBreak: 0,
-            _controlResist: 0, _skillDamage: 0,
-            _criticalDamage: 0, _blockEffect: 0,
-            _critical: 0, _criticalResist: 0,
-            _trueDamage: 0, _energy: 0,
-            _extraArmor: 0, _hpPercent: 0,
-            _armorPercent: 0, _attackPercent: 0,
-            _speedPercent: 0, _orghp: 0,
-            _superDamage: 0, _healPlus: 0,
-            _healerPlus: 0, _damageDown: 0,
-            _shielderPlus: 0, _damageUp: 0,
-          },
-        },
-      },
+      _heros: heroRoster.buildHerosMap(),
     },
 
     // ── initSuperSkill: e.superSkill.length ────────────────────
@@ -170,14 +147,46 @@ function buildEnterGameState(payload) {
     lastTeam: {
       _lastTeamInfo: {
         '9': {
-          _team: [{ _heroId: 1001, _position: 0 }],
+          _team: heroRoster.instanceIds().map((id, pos) => ({
+            _heroId: id,
+            _position: pos,
+          })),
           _superSkill: [],
         },
       },
     },
 
+    // ── setGuideInfo(e.guide): novice tutorial (新手引导) state ──
+    // getGuideStep(type) reads guide._steps[type]. Marking each line
+    // at/past its end threshold (MainGuideEndID=2717, TaskGuideEndID
+    // =3102) makes the game treat the tutorial as already finished,
+    // so no guide step / dialog / mask ever triggers.
+    // GUIDE_TYPE.MAIN = 2, GUIDE_TYPE.TASK = 3.
+    guide: {
+      _id: userId,
+      _steps: { 2: 2717, 3: 3102 },
+    },
+
+    // ── e.expedition && ExpeditionManager.setExpeditionModel(e.expedition)
+    // ExpeditionModel's constructor defaults machines/passLesson/collection/
+    // teams to {}/{}/[]/{}}, and deserialize({}) is a no-op — so an empty
+    // object here is enough to make setExpeditionModel actually run.
+    // Without ANY expedition field, _expeditionModel is never set at all,
+    // and CheckHeroInExpeditionMachine's `for(var n in
+    // t._expeditionModel.machines)` throws reading 'machines' of undefined
+    // the moment the Hero List screen renders (checkHeroHasRedPoint).
+    expedition: {},
+
     // ── direct scalar reads (safe if absent, provided for clarity)
-    currency: {},
+    // `ts.currency = e.currency` (saveUserData), then used as a
+    // currencyDisplay.json lookup KEY (getPriceInfoWithCurrency does
+    // `currencyDisplay[ts.currency][language]`). Must be one of the
+    // real currency codes ("USD","CNY","KRW","VND",...) — an empty
+    // object was truthy (skipping the `!ts.currency` guard) but not a
+    // valid key, so `currencyDisplay[{}]` was undefined and reading
+    // the language field off it crashed every render frame that shows
+    // a priced item.
+    currency: 'USD',
     channelSpecial: {},
     // Guarded fields (will be checked with e.xxx && before use)
     // vipLog, cardLog, guide, clickSystem, giftInfo, monthCard,

@@ -99,6 +99,50 @@
     }
   }
 
+  // ── Mock top-up / gem purchase (window.paySdk) ───────────
+  // ts.payToSdk(data) calls `window[e].apply(window,args)` for
+  // e="paySdk" (TSBrowser.excuteFunction) — a native Android
+  // JS-bridge object in the real APK, never defined in a browser.
+  // The real reward flow is a server-pushed `Notify` socket event
+  // with action:"payFinish" sent only after the backend verifies
+  // payment with Google Play out-of-band. There's no real payment
+  // gateway in this local emulator, so we grant the recharge.json
+  // diamond amount (already computed server-side in `prePayRet.data`
+  // by server/src/handlers/recharge.handler.js) immediately, via the
+  // same `ts.notifyData()` call path the real payFinish push would
+  // trigger — see main.min.js TSUIController.prototype.notifyData,
+  // action:"payFinish" branch, which calls
+  // UIWindowManager.openCongratulationObtain(e._detail).
+  window.paySdk = function (data) {
+    console.log('[BrowserBoot] Top-up requested, granting instantly:', data);
+    try {
+      var diamond = (data && data.diamond) || 0;
+      // Two gotchas in `_changeInfo._items`, found by tracing
+      // TSUIController.openCommonItemGetTips (called from the
+      // payFinish handler):
+      // 1. It persists via `ItemsCommonSingleton.setItem(Number(f),
+      //    _num)` where `f` is the OBJECT KEY itself, not `_id` — the
+      //    map must be keyed BY item id (unlike setBackpack's
+      //    `totalProps._items`, which is index-keyed and reads `._id`).
+      // 2. `_num` is the NEW ABSOLUTE TOTAL, not a delta — it derives
+      //    the "+N" popup amount itself via `_num - getItemNum(id)`.
+      //    Sending the raw purchased amount would silently overwrite
+      //    the balance instead of adding to it.
+      var current = window.ItemsCommonSingleton.getInstance().getItemNum(101); // DIAMONDID
+      window.ts.notifyData({
+        action: 'payFinish',
+        _code: 0,
+        _detail: {
+          _changeInfo: {
+            _items: { 101: { _id: 101, _num: current + diamond } },
+          },
+        },
+      });
+    } catch (e) {
+      console.warn('[BrowserBoot] paySdk mock failed:', e);
+    }
+  };
+
   // ── Install mocks immediately ────────────────────────────
   window.egret.ExternalInterface.addCallback = mockAddCallback;
   window.egret.ExternalInterface.call = mockCall;
@@ -293,6 +337,12 @@
       heroType: 0,
       heroQuality: 5,
       skills: { allSkills: {} },
+      // Match HeroDataModel defaults — checkHasLinkOnBattle reads
+      // hero.linkTo.indexOf(...) and hero.linkFrom unguarded, so a
+      // plain injected hero must carry these or the battle-list
+      // refresh crashes with "reading 'indexOf' of undefined".
+      linkTo: [],
+      linkFrom: '',
     };
     // Also add to heroslist for getHeroList
     if (mgr.heroslist && Array.isArray(mgr.heroslist) && mgr.heroslist.indexOf(1) < 0) {
@@ -412,6 +462,34 @@
       console.log('[BrowserBoot] Patched setAllHeroList');
     } catch (e) {}
   }, 1500);
+
+  // ── Disable ALL guide systems (novice tutorial, weaponCircle,
+  //    teamDungeon, soulShop, arena, appraisal, ...) ────────────
+  // Every guide path — GuideInfoManager.startGuide()'s own step
+  // walk AND the various triggerXxxGuide()/triggerGuideByType()
+  // helpers used elsewhere (e.g. Home.initAll's post-setup block)
+  // — funnels through TSUIController.prototype.openGuide() to
+  // build a TSGuideWindow mask. Neutering that single choke point
+  // blocks every guide mask regardless of which system triggers
+  // it, instead of chasing each guide type's completion step.
+  //
+  // (Earlier attempt forced GuideInfoManager.startGuide() itself to
+  // return true. That made Home.initAll's `0!=startGuide()` check
+  // always pass, which unblocked ITS OWN follow-up block that probes
+  // other guide lines — weaponCircle/teamDungeon/soulShop — that we
+  // hadn't marked complete, so THEY fired openGuide() and left an
+  // untouchable full-screen mask. Patching openGuide directly avoids
+  // needing to enumerate every guide line's completion step.)
+  setInterval(function patchGuide() {
+    try {
+      var cls = window.egret && window.egret.getDefinitionByName && window.egret.getDefinitionByName('TSUIController');
+      if (!cls || !cls.prototype || cls.prototype.__OpenGuidePatched) return;
+      if (typeof cls.prototype.openGuide !== 'function') return;
+      cls.prototype.openGuide = function () {};
+      cls.prototype.__OpenGuidePatched = true;
+      console.log('[BrowserBoot] Guide system disabled (openGuide no-op)');
+    } catch (e) {}
+  }, 200);
 
   // ── Patch imageAnimation on any prototype ────────────────
   // heroStand uses "image_png,animBase" format. If animBase

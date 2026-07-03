@@ -4,15 +4,17 @@
 
 const { success } = require('../utils/response');
 const gameData = require('../services/game-data');
+const heroRoster = require('../services/hero-roster');
 
 function handle(payload) {
   const { action } = payload;
 
-  // Hero list
+  // Hero list — locked to the renderable roster (heroes with real art)
   if (!action || action === 'list' || action === 'getList') {
     const heroData = gameData.get('hero') || {};
-    const heros = Object.values(heroData).slice(0, 20).map((h, i) => ({
-      ...h,
+    const heros = heroRoster.RENDERABLE_HERO_IDS.map((displayId) => ({
+      ...(heroData[displayId] || heroData[String(displayId)] || {}),
+      heroId: displayId,
       userId: 1001,
       level: 50,
       star: 5,
@@ -20,7 +22,7 @@ function handle(payload) {
       equipment: {},
     }));
 
-    return success({ heros, total: Object.keys(heroData).length });
+    return success({ heros, total: heros.length });
   }
 
   // Hero detail
@@ -41,11 +43,7 @@ function handle(payload) {
   // Hero image getAll — returns discovered hero list
   if (action === 'getAll') {
     // Format expected: { _heros: { id: { _id: n, _maxLevel: n }, ... } }
-    return success({
-      _heros: {
-        '1205': { _id: 1205, _maxLevel: 50 },
-      },
-    });
+    return success({ _heros: heroRoster.buildGetAllHeros() });
   }
 
   // Hero getAttrs — returns attrs for the sent hero ID list

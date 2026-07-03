@@ -9,6 +9,9 @@ const item = require('./item.handler');
 const skill = require('./skill.handler');
 const equipment = require('./equipment.handler');
 const guild = require('./guild.handler');
+const hangup = require('./hangup.handler');
+const entrust = require('./entrust.handler');
+const recharge = require('./recharge.handler');
 const fallback = require('./fallback.handler');
 
 // Domain handler lookup: maps request type → handler module
@@ -29,6 +32,9 @@ const HANDLERS = {
   guildBoss: guild,
   chat: guild,
   mail: guild,
+  hangup,
+  entrust,
+  recharge,
 };
 
 /**
