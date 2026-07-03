@@ -33,6 +33,13 @@ art đã cache trong `real-art/` vẫn còn. Muốn tải trước toàn bộ (o
 `real-art/resource/default.res.json` rồi mirror mọi URL từ CDN (Track A/Phase 2). Lưu ý Node KHÔNG
 hot-reload — kill hết process cổng 8080 trước khi restart, nếu không server chạy code cũ.
 
+**✅ ĐÃ XONG (2026-07-04): unlock 132 hero + codex nhận diện.** Xem changelog [1.2.7], [1.2.8].
+- Owned = 132 hero (`hero-roster.js`), team giữ 4 hero. Codex "gained" 0→132 (route `heroImage/getAll`).
+
+**🔜 NHIỆM VỤ TIẾP (đã có plan chi tiết):** 3 hệ progression hero còn xám/khóa — God Evolve star,
+Affinity/Resonance link (羁绊), Super Ultimate combo. **Toàn bộ phát hiện RE + bước làm ở:**
+`plans/260704-hero-progression-systems/` (plan.md + 3 phase). Ưu tiên người dùng: Phase 1 (Affinity/link).
+
 ---
 
 ## 📖 THỨ TỰ ĐỌC TÀI LIỆU (từ trên xuống)
