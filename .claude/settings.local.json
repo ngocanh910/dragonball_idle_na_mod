@@ -26,7 +26,31 @@
       "Bash(node -e \"try{require\\('@playwright/test'\\);console.log\\('@playwright/test available'\\)}catch\\(e\\){console.log\\('not found'\\)}\")",
       "Bash(npm install *)",
       "Bash(npx playwright *)",
-      "Bash(node test/login-e2e.test.js)"
+      "Bash(node test/login-e2e.test.js)",
+      "Bash(adb version *)",
+      "Bash(adb devices *)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(command -v adb.exe)",
+      "Read(//c/Program Files/platform-tools/**)",
+      "Read(//c/Users/PC/AppData/Local/Android/Sdk/platform-tools/**)",
+      "Read(//c/adb/**)",
+      "Bash(command -v node)",
+      "Bash(/c/Users/PC/AppData/Local/Android/Sdk/platform-tools/adb.exe version *)",
+      "Bash(/c/Users/PC/AppData/Local/Android/Sdk/platform-tools/adb.exe devices *)",
+      "Bash(/c/Users/PC/AppData/Local/Android/Sdk/platform-tools/adb.exe shell *)",
+      "Bash(netstat -ano)",
+      "Bash(node -c server/src/routes/real-art.routes.js)",
+      "Bash(node -c server/src/index.js)",
+      "Bash(node -e \"const {chromium}=require\\('playwright'\\); console.log\\('chromium execPath:', chromium.executablePath\\(\\)\\)\")",
+      "Bash(node ./pw-verify-realart.js)",
+      "Bash(git add *)",
+      "Bash(git commit -q -m 'feat: recover real hero/UI art from device cache *)",
+      "Bash(export MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL=\"*\")",
+      "Bash(curl -s -o /dev/null -w 'http=%{http_code} bytes=%{size_download} type=%{content_type}\\\\n' --max-time 15 __TRACKED_VAR__/assets/image/public/dragon_animation/hero/1206/1206_tex.png)",
+      "Bash(curl -s -o /dev/null -w 'http=%{http_code} bytes=%{size_download} type=%{content_type}\\\\n' --max-time 15 __TRACKED_VAR__/assets/image/public/hero_related/hero_icon_short/hero_icon_1403_short.png)",
+      "Bash(curl -s -o /dev/null -w 'http=%{http_code} bytes=%{size_download}\\\\n' --max-time 15 __TRACKED_VAR__/default.res.json)",
+      "Bash(env)",
+      "Bash(curl -s \"http://127.0.0.1:8080/api/debug/all\")"
     ]
   }
 }
