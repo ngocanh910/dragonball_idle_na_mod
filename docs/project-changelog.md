@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.3] - 2026-07-04
+
+### Added (Live CDN Backfill — the asset CDN is still alive)
+- **Key discovery:** the original asset CDN **`dragonh5cdn.popoh5.com` is STILL SERVING** in 2026. Prior
+  research (1.2.1) declared the art unrecoverable because the CDN *base URL* came from a dead config
+  server — but the CDN *host itself*, recovered from the device cache path (1.2.2), still answers 200 for
+  every asset in `default.res.json`. Verified: `hero_icon_1403_short.png` → real 86×84 PNG (Super Saiyan
+  Trunks), and the full manifest downloads.
+- **New `server/src/routes/cdn-proxy.routes.js`:** on-demand backfill middleware. When a `/resource/...`
+  asset isn't on disk (real-art or bundled), it fetches from `https://dragonh5cdn.popoh5.com/bs/resource/...`,
+  **caches it into `real-art/resource/<path>`, and serves it** — so art fills in lazily as you browse and
+  works offline forever after first view. Uses Node 18+ global `fetch` (no new deps), the same
+  `zh_cn→en→public` locale variants, a 15 s timeout, an in-memory negative cache (avoids re-hammering the
+  CDN for genuinely-missing paths), and a path-traversal guard. Disable with `CDN_BACKFILL=false`.
+- **`server/src/index.js`:** registers it AFTER real-art and BEFORE `registerAll` →
+  serving order is **local real-art → CDN backfill → placeholder fallback**.
+- **Verified (Playwright, 0 pageerrors):** the hero collection (英雄 4/90) now renders REAL card icons for
+  owned heroes — kid Goku (S), Nappa (A), Krillin (B), Bulma (B) — backfilled from the CDN on first view;
+  unowned slots correctly show the game's own "DRAGON BALL" silhouette placeholder.
+- **Impact:** this supersedes the device-cache partial coverage — nearly all missing hero/UI art
+  (icons, stands, pictures, skill icons) is now recoverable on demand as long as the CDN stays up.
+  The gotcha for future sessions: **Node has no hot-reload — kill ALL :8080 listeners before restarting**,
+  or a lingering PID silently keeps stale code bound to the port.
+
 ## [1.2.2] - 2026-07-03
 
 ### Added (Real Art Recovered from Device Cache)

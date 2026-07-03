@@ -22,10 +22,16 @@ Node.js** để chạy game offline trong trình duyệt.
   placeholder; dùng lại rewrite `zh_cn→en→public`). Verify Playwright: login splash + Bulma render art
   thật, 0 pageerror. Chi tiết: changelog **[1.2.2]** + `plans/260703-extract-real-art-from-device/`.
 
-**BƯỚC TIẾP THEO (nếu muốn phủ art nhiều hơn):** Vài overlay vẫn xanh lá (file KHÔNG có trong cache — máy
-chỉ cache cái đã xem trong game). Muốn đầy đủ hơn: mở nhiều màn hình trên điện thoại (collection full
-hero, shop, arena...) để game cache thêm, rồi `adb pull` lại. Hoặc Track A (bắt CDN `dragonh5cdn.popoh5.com`
-nếu còn sống) — xem Phase 1/2.
+**✅ NÂNG CẤP (2026-07-04): CDN CÒN SỐNG.** Phát hiện `dragonh5cdn.popoh5.com/bs/resource` vẫn trả 200 cho
+mọi asset trong `default.res.json`. Đã thêm `server/src/routes/cdn-proxy.routes.js`: khi client xin asset
+mà đĩa chưa có → tự fetch từ CDN, cache vào `real-art/` rồi serve (lazy, sau lần đầu là offline). Thứ tự:
+**real-art local → CDN backfill → placeholder**. Tắt bằng `CDN_BACKFILL=false`. Verify: collection hero
+(英雄 4/90) hiện icon thật (Goku/Nappa/Krillin/Bulma). Chi tiết: changelog **[1.2.3]**.
+
+**BƯỚC TIẾP THEO (nếu cần):** Hầu hết art giờ tự về qua CDN khi duyệt game. Nếu CDN chết trong tương lai,
+art đã cache trong `real-art/` vẫn còn. Muốn tải trước toàn bộ (offline hoàn toàn): parse
+`real-art/resource/default.res.json` rồi mirror mọi URL từ CDN (Track A/Phase 2). Lưu ý Node KHÔNG
+hot-reload — kill hết process cổng 8080 trước khi restart, nếu không server chạy code cũ.
 
 ---
 

@@ -20,6 +20,7 @@ const fs = require('fs');
 const config = require('./config');
 const { registerAll } = require('./routes');
 const realArt = require('./routes/real-art.routes');
+const cdnProxy = require('./routes/cdn-proxy.routes');
 const socketHandler = require('./socket');
 const gameData = require('./services/game-data');
 const logStore = require('./services/log-store');
@@ -61,6 +62,10 @@ app.use((req, res, next) => {
 // ── Real art (device-pulled) — must precede registerAll so real
 //    files win over the resource-proxy placeholder fallback ─────
 realArt.register(app);
+
+// ── CDN backfill — lazy-fetch still-missing art from the live CDN
+//    (after local real-art, before the placeholder fallback) ────
+cdnProxy.register(app);
 
 // ── Routes ───────────────────────────────────────────────────
 registerAll(app);
