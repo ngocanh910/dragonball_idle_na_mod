@@ -24,6 +24,10 @@ jadx_output/
 # ----- Decrypted game assets (regenerable) -----
 decrypted_assets/
 
+# ----- Real art pulled from a live device cache (67MB, re-pullable via adb) -----
+# Path: /sdcard/Android/data/com.guan.wangys/files/game/https/dragonh5cdn.popoh5.com/bs/resource
+real-art/
+
 # ----- Review images (regenerable) -----
 review_images/
 

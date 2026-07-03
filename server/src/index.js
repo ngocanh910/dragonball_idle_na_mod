@@ -19,6 +19,7 @@ const fs = require('fs');
 
 const config = require('./config');
 const { registerAll } = require('./routes');
+const realArt = require('./routes/real-art.routes');
 const socketHandler = require('./socket');
 const gameData = require('./services/game-data');
 const logStore = require('./services/log-store');
@@ -56,6 +57,10 @@ app.use((req, res, next) => {
   };
   next();
 });
+
+// ── Real art (device-pulled) — must precede registerAll so real
+//    files win over the resource-proxy placeholder fallback ─────
+realArt.register(app);
 
 // ── Routes ───────────────────────────────────────────────────
 registerAll(app);

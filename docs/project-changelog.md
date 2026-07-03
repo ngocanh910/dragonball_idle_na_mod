@@ -2,6 +2,36 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.2] - 2026-07-03
+
+### Added (Real Art Recovered from Device Cache)
+- **Root problem (from 1.2.1):** the missing art was never in the APK — it is CDN-streamed from
+  `dragonh5cdn.popoh5.com` and that CDN base URL was runtime-injected from a now-dead config server, so
+  Option B (re-download) was blocked. **This release recovers the art from a live install instead.**
+- **Device recon (Phase 0, non-root path):** a Xiaomi "garnet" phone (Android 14 / SDK 34, **not rooted**)
+  was reached via USB `adb`. Root and `run-as` were both unavailable, but the app opted into legacy
+  storage (`REQUEST_LEGACY_EXTERNAL_STORAGE`), leaving its external cache adb-readable at
+  `/sdcard/Android/data/com.guan.wangys/files/game/https/dragonh5cdn.popoh5.com/bs/resource`.
+- **Pulled 1007 files / 67 MB** into `real-art/resource/` (git-ignored, re-pullable). The on-disk layout
+  mirrors the CDN URL path, so each file's path already equals its logical `/resource/...` path — no VVCC
+  reverse-mapping needed. Contents: real UI art under `image/{en,public}/ui/...` (login splash,
+  month_card, summon_card, combat_ui, effects), 6 hero DragonBones sets (`1201, 1205, 1206, 1207, 1309,
+  1906`), 206 VVCC-obfuscated blobs, and the full Egret manifests (`default.res*.json`).
+- **New `server/src/routes/real-art.routes.js`:** middleware mounted at `/resource` **before**
+  `registerAll(app)` so real files win over the resource-proxy placeholder fallback (empty
+  `{armature:[]}` json / 1×1 transparent PNG). It reuses the fallback's proven `zh_cn → en → public`
+  locale rewrite (+ the `kaichangdonghua/kaichangzhandouxiangguan` DragonBones segment) so the client's
+  `zh_cn/` requests resolve against the cache's `en/`+`public/` layout. Path-traversal guarded.
+- **`server/src/index.js`:** requires + registers the real-art middleware ahead of the route aggregator.
+- **Verified (Playwright, 720×1280, 0 pageerrors):** login screen now renders the real Goku-vs-Frieza
+  splash + logo (was placeholder); home/battle renders animated **Bulma** and real UI icons. Confirmed at
+  HTTP level that a login PNG present **only** in `real-art/` serves 22,877 bytes (not the placeholder),
+  and a `zh_cn/` hero `_ske.json` resolves to the real 13,410-byte armature via locale rewrite.
+- **Scope note:** the 4-hero roster (`1205/1206/1207/1309`) already had bundled art (see 1.2.1); the new
+  genuine additions are the **CDN-only UI art** and 2 extra hero sets (`1201, 1906`). A few overlay
+  elements still render as green placeholders — those files were not in this device's cache (it only
+  caches what was actually viewed in-game); a fuller pull requires visiting more screens on the device.
+
 ## [1.2.1] - 2026-07-03
 
 ### Investigated (Hero Art / VVCC Mapping)

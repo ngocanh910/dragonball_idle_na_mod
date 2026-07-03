@@ -17,10 +17,11 @@ placeholder plan `260703-hero-art-rendering`).
 
 ## Phases
 
-### Phase 0 — Device recon & access setup  ·  status: pending
-- [ ] Confirm device root status, Android version, `adb` connectivity.
-- [ ] Install `adb` on this machine; list app data reachability for `com.guan.wangys`.
-- [ ] Decide Track A vs B feasibility from the above.
+### Phase 0 — Device recon & access setup  ·  status: DONE (2026-07-03)
+- [x] Device: Xiaomi "garnet", Android 14 / SDK 34, **NOT rooted**; reached via USB adb.
+- [x] `run-as` blocked (release build) + no `su`, BUT app external cache is adb-readable thanks to
+      `REQUEST_LEGACY_EXTERNAL_STORAGE`: `/sdcard/Android/data/com.guan.wangys/files/game/https/...`.
+- [x] Decision: **Track B (device cache extraction) chosen** — cache already holds real art; no proxy needed.
 - Detail: `phase-00-device-recon.md`
 
 ### Phase 1 — Track A: network capture recon  ·  status: pending
@@ -36,16 +37,17 @@ placeholder plan `260703-hero-art-rendering`).
 - [ ] Wire the proxy to serve `real-art/` ahead of placeholders. Verify coverage.
 - Detail: `phase-02-track-a-bulk-download.md`
 
-### Phase 3 — Track B: extract on-device cache  ·  status: pending (fallback if A blocked)
-- [ ] Locate the Egret resource cache in app storage (external + internal).
-- [ ] Pull it via adb / adb backup / root per Phase 0.
-- [ ] Verify naming (plain logical vs obfuscated) + copy into the server resource tree.
+### Phase 3 — Track B: extract on-device cache  ·  status: DONE (2026-07-03)
+- [x] Located Egret cache at `.../files/game/https/dragonh5cdn.popoh5.com/bs/resource` (adb-readable).
+- [x] Pulled 1007 files / 67 MB via `adb pull` into `real-art/resource/` (git-ignored).
+- [x] Naming = plain logical paths (mirror CDN URL) + 206 VVCC-obfuscated blobs. No mapping needed.
 - Detail: `phase-03-track-b-device-extraction.md`
 
-### Phase 4 — Integrate & verify  ·  status: pending
-- [ ] Serving order: real bundled → extracted/downloaded real-art → placeholder.
-- [ ] Playwright: collection (0/132), hero detail (stand+picture+animation), skill popups show REAL art.
-- [ ] Coverage report: real vs placeholder per category.
+### Phase 4 — Integrate & verify  ·  status: DONE (2026-07-03)
+- [x] Serving order: real-art (`real-art.routes.js`, before registerAll) → existing pipeline → placeholder.
+- [x] Playwright (720×1280, 0 pageerrors): login splash + home render real art; login PNG only-in-real-art
+      serves 22,877 B; `zh_cn` hero `_ske.json` → real 13,410 B via locale rewrite.
+- [x] Coverage: CDN-only UI art + heroes 1201/1906 newly real; a few uncached overlays still placeholder.
 - Detail: `phase-04-integrate-verify.md`
 
 ## Success Criteria

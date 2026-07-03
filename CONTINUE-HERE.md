@@ -13,11 +13,19 @@ Node.js** để chạy game offline trong trình duyệt.
 **Tiến độ:** Game đã boot → login → vào Home → battle scene → Hero list → top-up gems (tất cả hoạt động,
 đã verify bằng Playwright). Chi tiết ở changelog.
 
-**NHIỆM VỤ ĐANG DANG DỞ (ưu tiên số 1):** Lấy **art thật + skill thật** của hero từ thiết bị người dùng
-(hình hero hiện đang trống vì art không nằm trong APK — nó được tải từ CDN + cache trên máy đã chơi).
-→ Kế hoạch: `plans/260703-extract-real-art-from-device/`
-→ **Bước tiếp theo chính xác:** người dùng có **Android đã root**. Đang chờ họ **cắm điện thoại vào máy
-này qua USB (bật USB debugging)**. Khi `adb devices` thấy máy → chạy Phase 0 (recon) rồi Phase 1/3.
+**✅ ĐÃ XONG (2026-07-03, phiên Windows):** Lấy **art thật** của hero/UI từ thiết bị người dùng qua `adb`.
+- Máy: Xiaomi "garnet", Android 14, **KHÔNG root**. Nhưng app bật legacy storage nên cache external đọc
+  được qua adb: `/sdcard/Android/data/com.guan.wangys/files/game/https/dragonh5cdn.popoh5.com/bs/resource`.
+- Đã `adb pull` 1007 file / 67 MB → `real-art/resource/` (đã .gitignore). Đường dẫn trên đĩa = đúng
+  logical `/resource/...` nên KHÔNG cần map VVCC.
+- Đã tích hợp: `server/src/routes/real-art.routes.js` (mount `/resource` TRƯỚC `registerAll` để thắng
+  placeholder; dùng lại rewrite `zh_cn→en→public`). Verify Playwright: login splash + Bulma render art
+  thật, 0 pageerror. Chi tiết: changelog **[1.2.2]** + `plans/260703-extract-real-art-from-device/`.
+
+**BƯỚC TIẾP THEO (nếu muốn phủ art nhiều hơn):** Vài overlay vẫn xanh lá (file KHÔNG có trong cache — máy
+chỉ cache cái đã xem trong game). Muốn đầy đủ hơn: mở nhiều màn hình trên điện thoại (collection full
+hero, shop, arena...) để game cache thêm, rồi `adb pull` lại. Hoặc Track A (bắt CDN `dragonh5cdn.popoh5.com`
+nếu còn sống) — xem Phase 1/2.
 
 ---
 
@@ -56,17 +64,20 @@ này qua USB (bật USB debugging)**. Khi `adb devices` thấy máy → chạy P
 
 ## ⚙️ THÔNG TIN VẬN HÀNH (quan trọng — dễ vấp)
 
-- **Node KHÔNG có trong PATH mặc định.** Dùng:
-  `export PATH="$HOME/.nvm/versions/node/v24.14.0/bin:$PATH"` trước mọi lệnh node/npm.
-- **Chạy server:** `cd /home/admin1/Downloads/folder_code_smali && node server/src/index.js`
-  (nên chạy background). Server ở **http://127.0.0.1:8080**. Entry game: `http://127.0.0.1:8080/index.html`.
-  - Server đã được DỪNG sạch cuối phiên. Nếu gặp EADDRINUSE 8080, kiểm tra
-    `pgrep -af "server/src/index.js"` và kill process cũ trước khi start.
-- **Playwright ĐÃ cài** (node_modules + chromium). Script test phải **để trong thư mục project** (để
-  resolve module `playwright`), chạy: `node ./pw-debug-xxx.js`. Xóa file test tạm sau khi xong.
-  - Luồng login trong test: click username (345,828) → gõ → password (345,949) → gõ → PLAY (345,1075) →
-    chọn server "Local Emulator" (197,587) → PLAY lại. Viewport 720x1280.
-- **adb đã cài** (`/usr/bin/adb`, v1.0.41). Hiện `adb devices` TRỐNG — chờ người dùng cắm máy.
+> ⚠️ **Có 2 máy dev.** File này gốc viết trên **Linux** (`/home/admin1/Downloads/folder_code_smali`,
+> node v24, adb `/usr/bin/adb`). Phiên 2026-07-03 mục real-art chạy trên **Windows**
+> (`c:\Users\PC\Desktop\dragonballidle\dragonball_idle_na_mod`, node v20, Git Bash). Ghi chú cả hai.
+
+- **Windows:** node đã có trong PATH (`node -v` = v20). adb ở
+  `C:\Users\PC\AppData\Local\Android\Sdk\platform-tools\adb.exe`. Khi chạy adb với đường dẫn `/sdcard/...`
+  trong Git Bash, PHẢI đặt `export MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL="*"` để không bị mangle path.
+- **Linux (gốc):** `export PATH="$HOME/.nvm/versions/node/v24.14.0/bin:$PATH"`; adb `/usr/bin/adb`.
+- **Chạy server:** `node server/src/index.js` từ thư mục project (chạy background). Server ở
+  **http://127.0.0.1:8080**, entry: `http://127.0.0.1:8080/index.html`. Nếu EADDRINUSE 8080: trên Windows
+  `netstat -ano | grep :8080` rồi kill PID; trên Linux `pgrep -af "server/src/index.js"`.
+- **Playwright ĐÃ cài** (node_modules + chromium). Script test để **trong thư mục project**, chạy
+  `node ./pw-xxx.js`, xóa sau khi xong. Luồng login: username (345,828) → gõ → password (345,949) → gõ →
+  PLAY (345,1075) → server "Local Emulator" (197,587) → PLAY lại. Viewport 720x1280.
 
 ---
 
