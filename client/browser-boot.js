@@ -184,9 +184,19 @@
 
   // ── Mock window.getQueryStringByName ────────────────────
   // The game uses this to parse URL query parameters.
+  //
+  // Language: the game sets ts.language from getQueryStringByName("language")
+  // and defaults to "cn" when null (see getLanguage() in main.min.js). We
+  // force "en" so it loads default.res-en.json — the full English manifest
+  // that includes the ~39 newer heroes absent from the base default.res.json
+  // (whose missing RES entries caused recycled cards to show duplicate art),
+  // and so all UI text/images resolve to English natively.
+  // A real ?language=xx in the URL still overrides this.
   window.getQueryStringByName = function (name) {
     var match = new RegExp('[?&]' + name + '=([^&]*)').exec(window.location.search);
-    return match ? decodeURIComponent(match[1].replace(/\+/g, ' ')) : null;
+    if (match) return decodeURIComponent(match[1].replace(/\+/g, ' '));
+    if (name === 'language') return 'en';
+    return null;
   };
 
   // ── Mock window.getAppId ────────────────────────────────

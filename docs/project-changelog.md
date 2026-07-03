@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.6] - 2026-07-04
+
+### Fixed (ROOT cause: duplicate hero art + Chinese UI — force English locale)
+- **Real root cause of the "duplicate heroes / missing new heroes / no stand" report:** the game loads
+  TWO manifests and merges them — `default.res.json` (base) **and** `default.res-{lang}.json`. The base
+  manifest has hero_icon entries for only ~93 of the 132 codex heroes; the **39 newer heroes
+  (IDs 1522-1539, 1613-1634, …) exist only in `default.res-en.json`**. When those RES keys don't resolve,
+  the codex's recycled card cells keep the previous hero's texture → **duplicate art** (and no stand).
+- **Why it was Chinese too:** `getLanguage()` returns `ts.language || "cn"`, and `ts.language` is read
+  from `getQueryStringByName("language")`. With no URL param it was null → **"cn"**, so the game never
+  loaded the `-en` manifest. The English UI in 1.2.5 was only a band-aid (image-path rewriting).
+- **The fix (one line of intent):** `client/browser-boot.js` — the mocked `getQueryStringByName("language")`
+  now returns **"en"** by default (a real `?language=xx` still overrides). This sets `ts.language="en"`, so
+  the game natively loads `default.res-en.json` (13345 entries) → all 39 new heroes resolve AND all
+  text/images are English at the source.
+- **Verified (Playwright, fresh context, 0 pageerrors):** `default.res-en.json` is requested,
+  `ts.language==="en"`, and `RES.hasRes` is **true** for the previously-missing heroes
+  (`1522_ske_json`, `1613_ske_json`, `1634_ske_json`). The God Evolve codex now renders **132 distinct
+  hero portraits with zero duplicates**, including a "New"-badged hero; unowned heroes show the game's
+  intended grayscale (not blank/duplicate). The 1.2.5 en-preference middleware is now redundant but kept
+  as a harmless safety net.
+- **Coverage confirmed:** all 132 codex heroes have icon + stand on disk; the only gap is hero 1600's
+  stand, which 404s on the CDN (does not exist in this version).
+
 ## [1.2.5] - 2026-07-04
 
 ### Fixed (UI reverted to English + complete, de-duplicated hero art)
