@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.7] - 2026-07-04
+
+### Changed (Unlock all heroes)
+- Now that real art exists for every collectible hero, the "renderable-only" lock in
+  `server/src/services/hero-roster.js` is lifted. `RENDERABLE_HERO_IDS`/`ALL_HERO_IDS` now load the full
+  **heroBook.json codex (132 heroes)**, so `buildHerosMap` (owned set), `buildGetAllHeros`, and the hero
+  list handler all report every hero as owned.
+- The starting **battle team stays limited** to the four long-verified heroes (`instanceIds()` →
+  `[1205,1206,1207,1309]`, ordered first so their instance ids are 1–4) so the formation and home/battle
+  scene don't regress. Each owned hero uses its own heroBook `star` (capped at 7).
+- Removed `mods/examples/unlock-all-heroes.js` — it hooked `handler:hero` and injected `gameData.list('hero')`
+  (**all 803 entries incl. 546 enemies + 118 bosses**), which was both wrong and now redundant.
+- **Verified (Playwright, 0 pageerrors):** the hero collection shows **132/90 owned**, every card in full
+  colour with distinct real art (SSS, gold frames) — no grayscale, no duplicates.
+
 ## [1.2.6] - 2026-07-04
 
 ### Fixed (ROOT cause: duplicate hero art + Chinese UI — force English locale)

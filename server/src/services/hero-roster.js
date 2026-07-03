@@ -1,17 +1,34 @@
 // ============================================================
 // Hero Roster — single source of truth
 // ============================================================
-// Only these hero display IDs have real, decrypted art bundled in
-// the APK (hero_stand sheet + DragonBones ske/tex + hero_picture).
-// All other heroes stream their art from a CDN that is no longer
-// reachable, so the roster is locked to the renderable set.
-// See: plans/260703-fix-game-boot-and-asset-loading/research/
-//      research-vvcc-mapping-reality.md
+// Every collectible hero (the heroBook / codex list) is now OWNED —
+// real art for all of them is available (bundled + device-cache +
+// live-CDN backfill), so the old "renderable-only" lock is lifted.
+//
+// - Owned set  = all heroBook heroes (buildHerosMap / getAll / list)
+// - Battle team = a small, known-good subset (instanceIds) so the
+//   starting formation and home/battle scene stay stable.
 // ============================================================
 
-// Ordered display IDs. Each is present in hero.json + heroWakeUp.json
-// and has hero_stand_<id> + dragon_animation/hero/<id> on disk.
-const RENDERABLE_HERO_IDS = [1205, 1206, 1207, 1309];
+const path = require('path');
+const heroBook = require(
+  path.resolve(__dirname, '..', '..', '..', 'decrypted_assets', 'game_source', 'resource', 'json', 'heroBook.json')
+);
+
+// Heroes placed in the starting battle team (formation has limited
+// slots; these four have long-verified stand + picture art).
+const TEAM_HERO_IDS = [1205, 1206, 1207, 1309];
+
+// All collectible hero display ids. Team heroes are ordered FIRST so
+// their instance ids are 1..N and instanceIds() maps to them.
+const _bookIds = Object.keys(heroBook).map(Number).filter((n) => !Number.isNaN(n));
+const ALL_HERO_IDS = [
+  ...TEAM_HERO_IDS.filter((id) => _bookIds.includes(id)),
+  ..._bookIds.filter((id) => !TEAM_HERO_IDS.includes(id)),
+];
+
+// Backward-compat name — the hero list handler uses this, now = full owned set.
+const RENDERABLE_HERO_IDS = ALL_HERO_IDS;
 
 function buildBaseAttr() {
   return {
@@ -32,17 +49,23 @@ function buildBaseAttr() {
   };
 }
 
+// Star each owned hero starts at (its own base star from heroBook, capped).
+function heroStar(displayId) {
+  const s = heroBook[displayId] && Number(heroBook[displayId].star);
+  return s > 0 ? Math.min(s, 7) : 1;
+}
+
 // Map keyed by instance id (1..N), as HerosManager.readByData expects.
 // The instance id is what teams reference via _heroId; _heroDisplayId
 // selects the art / hero.json row.
 function buildHerosMap() {
   const map = {};
-  RENDERABLE_HERO_IDS.forEach((displayId, i) => {
+  ALL_HERO_IDS.forEach((displayId, i) => {
     const instanceId = i + 1;
     map[instanceId] = {
       _heroId: instanceId,
       _heroDisplayId: displayId,
-      _heroStar: 1,
+      _heroStar: heroStar(displayId),
       _heroTag: '',
       _fragment: 0,
       _expeditionMaxLevel: 0,
@@ -56,15 +79,15 @@ function buildHerosMap() {
   return map;
 }
 
-// Instance ids in roster order (e.g. [1,2,3,4]).
+// Instance ids for the starting battle team (first N = TEAM_HERO_IDS).
 function instanceIds() {
-  return RENDERABLE_HERO_IDS.map((_, i) => i + 1);
+  return TEAM_HERO_IDS.map((_, i) => i + 1);
 }
 
 // { _heros: { <displayId>: { _id, _maxLevel } } } for hero/getAll.
 function buildGetAllHeros() {
   const heros = {};
-  RENDERABLE_HERO_IDS.forEach((displayId) => {
+  ALL_HERO_IDS.forEach((displayId) => {
     heros[displayId] = { _id: displayId, _maxLevel: 50 };
   });
   return heros;
@@ -72,6 +95,8 @@ function buildGetAllHeros() {
 
 module.exports = {
   RENDERABLE_HERO_IDS,
+  ALL_HERO_IDS,
+  TEAM_HERO_IDS,
   buildBaseAttr,
   buildHerosMap,
   instanceIds,
