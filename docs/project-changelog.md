@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.8] - 2026-07-04
+
+### Fixed (Hero codex "collected" recognition)
+- The 图鉴/Illustration codex read `HerosManager.getAlreadyGainHeroID()`, populated by
+  `setAlreadyGainHeroID(e)` from the **socket `heroImage`/`getAll`** response — a type the dispatcher had
+  no route for, so it fell through to `{}` and the codex counter sat at **0/159**.
+- Routed `heroImage → hero` handler (`server/src/handlers/index.js`); `hero.handler`'s existing `getAll`
+  branch already returns `{ _heros: buildGetAllHeros() }` in the `{ _id, _maxLevel }` shape
+  `setAlreadyGainHeroID` expects. Verified (Playwright probe): `getAlreadyGainHeroID()` **0 → 132**,
+  `checkHeroAlreadyGain(1206) === true`; codex counter now shows **132/159**.
+
+### Known-remaining (deep per-hero progression systems — not yet populated)
+- **God Evolve (神觉醒) card colour/stars**: the God-Evolve screen tints each portrait by that hero's
+  god-evolve STAR (a separate upgrade), not by ownership — so cards stay grayscale until god-evolve state
+  is provided per hero.
+- **Affinity / resonance links (羁绊)**: driven by `enter-game e.resonance → setResonanceModel`; currently
+  unsent, so `resonanceData` is an empty `ResonanceModel` (all links "Unowned").
+- **Super Ultimate combos**: `_superSkillBook` is `{}`; combos need per-hero super-skill state.
+  These are interconnected active-progression systems; populating them fully is a larger follow-up.
+
 ## [1.2.7] - 2026-07-04
 
 ### Changed (Unlock all heroes)

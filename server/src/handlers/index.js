@@ -20,6 +20,7 @@ const HANDLERS = {
   player,
   user: player,
   hero,
+  heroImage: hero,   // heroImage/getAll → populates the codex "already gained" list
   backpack: item,
   item,
   bag: item,
