@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.4] - 2026-07-04
+
+### Added (Full v110 Art Set — matched to the user's actual app)
+- **Problem:** the CDN's *current* manifest (2.0 MB) is newer than the app on the user's phone, which is
+  pinned to **resource version 110** (APK `1.0.1` + hot-updated resource pack). Fetching by the CDN's
+  manifest risked version mismatch ("art cũ không map chuẩn").
+- **Fix — drive downloads by the DEVICE's own v110 manifest.** Re-pulled the phone's
+  `default.res.json` (version 110, the authoritative asset list = **7844 assets**) and used it, not the
+  CDN's manifest, as the source of truth. Per-file art on the CDN still matches the app (verified: a hero
+  icon fetched with vs without `?v=` is byte-identical), so this reconstructs exactly the v110 set.
+- **New `tools/bulk-download-v110.js`:** reads the device manifest, downloads every asset from
+  `dragonh5cdn.popoh5.com/bs/resource` into `real-art/resource/<logical-path>` (query stripped).
+  Concurrent (24), resumable (skips existing), per-file error-guarded (a path colliding with the existing
+  `properties` file no longer aborts the run), logs misses.
+- **Result:** `real-art/` grew **67 MB → 271 MB**, **7830 / 7844** assets on disk (99.8%). Now includes
+  **844 hero icons** (~132 heroes, short+long), **123 hero DragonBones stand-animation sets**, **98 hero
+  pictures (立绘)**, plus full UI/effects/loading art. The 14 misses are 2 mock config files (emulator
+  generates these anyway) + 12 `zh_cn`-only event/vip images absent from the CDN (EN build uses en/public).
+- **Serving:** unchanged pipeline (`real-art` local → CDN backfill → placeholder). With the full set on
+  disk, arbitrary hero icons (1001/1403/1905…) now serve **instantly from local disk** (HTTP 200, no CDN
+  round-trip). Verified via Playwright, 0 pageerrors.
+- **Note on display:** the main hero collection still shows only OWNED heroes' art (4/90) — the rest are
+  the game's own silhouette placeholders for unowned heroes (game logic, not missing art). Screens that
+  list all heroes (e.g. the codex / "God Evolve") now populate with real art.
+
 ## [1.2.3] - 2026-07-04
 
 ### Added (Live CDN Backfill — the asset CDN is still alive)
