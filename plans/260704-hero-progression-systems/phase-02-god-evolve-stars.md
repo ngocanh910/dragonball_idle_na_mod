@@ -36,6 +36,29 @@ acceptance_criteria:
    or trigger heroImage/getAll earlier). If (b) → find + populate per-hero god-evolve star/evolveLevel state.
 3. Implement the minimal state that makes cards colour + show stars; verify no crash.
 
+## Progress (2026-07-05) — DEFINITIVE finding: both symptoms are awakening-gated
+Investigated deeply (Playwright probes + client RE). Conclusions:
+- **Codex "gained" already works** (v1.2.8): `getAlreadyGainHeroID()` = 132, counter 132/159. The God-Evolve
+  card colour code IS `anyIsEnableOrNotColor(T, r)` with `T = I[n.id]` (gained) → true. Yet cards render
+  grayscale, so this "God Evolve" screen is the **神觉醒 / wakeUpGod** view, tinting by a per-hero
+  **god-awaken** state (NOT gained, NOT heroStar — the god-star `n.star` is 0 for all owned heroes).
+- **Hero-detail stats (8000) are also awakening-gated.** The detail shows "Hero Awakening needed!"
+  (`getHeroNextState === UP_TYPE.TYPE_WAKEUP`) and the ATK/HP/DEF/SPD rows show the **quality value 8000**,
+  NOT `heroBaseAttr`. Proven: our server `_heroBaseAttr._hp` DOES reach the client (interval probe saw
+  hp != null), and a client patch that forces `heroBaseAttr.hp/attack` via the game's own
+  `getHeroBookDataModel` (which returns the correct values, e.g. hero 1634 → hp 769168 = the Illustration's
+  Super Android 17) had **no effect on the display** — because the pre-awaken panel doesn't read
+  `heroBaseAttr`. `getAttrs` is never called (owned-hero attrs are client-computed).
+- **⟹ The single root for BOTH God-Evolve colour AND real stat display is the god-awaken (wakeUpGod) state.**
+  A client `heroBaseAttr` patch is confirmed ineffective and was reverted.
+
+## Next (needs decision) — two candidate levers
+1. **Find + patch the awaken gate**: locate the `isAwakened`/`wakeUpGod`-level check that (a) tints the
+   God-Evolve card and (b) switches the detail stat rows from quality→`heroBaseAttr`; force it "awakened".
+   Uncertain but, if found, fixes both at once. Look at the wakeUpGod list view + `getHeroNextState`.
+2. **Populate god-awaken state server-side** in enter-game `_heros` (a per-hero god-star/wakeUpGod-level
+   field) — needs RE of that field name + the client reader.
+
 ## Verify
 - Playwright screenshot of God Evolve: cards in colour with gold stars, matching the List screen.
-- 0 pageerrors.
+- Hero detail ATK/HP/DEF/SPD show hero-stats.json values (not 8000). 0 pageerrors.
