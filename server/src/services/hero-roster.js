@@ -11,6 +11,7 @@
 // ============================================================
 
 const path = require('path');
+const heroStats = require('./hero-stats');
 const heroBook = require(
   path.resolve(__dirname, '..', '..', '..', 'decrypted_assets', 'game_source', 'resource', 'json', 'heroBook.json')
 );
@@ -62,6 +63,14 @@ function buildHerosMap() {
   const map = {};
   ALL_HERO_IDS.forEach((displayId, i) => {
     const instanceId = i + 1;
+    const s = heroStats.byDisplayId(displayId);
+    const baseAttr = buildBaseAttr();
+    baseAttr._level = 200;
+    baseAttr._hp = s.hp;
+    baseAttr._attack = s.attack;
+    baseAttr._armor = s.armor;
+    baseAttr._speed = s.speed;
+    baseAttr._power = heroStats.powerOf(s);
     map[instanceId] = {
       _heroId: instanceId,
       _heroDisplayId: displayId,
@@ -73,7 +82,7 @@ function buildHerosMap() {
       _potentialResetCount: 0,
       _superSkillLevel: [0, 0, 0],
       _potentialLevel: [0, 0, 0, 0],
-      _heroBaseAttr: buildBaseAttr(),
+      _heroBaseAttr: baseAttr,
     };
   });
   return map;
@@ -82,6 +91,11 @@ function buildHerosMap() {
 // Instance ids for the starting battle team (first N = TEAM_HERO_IDS).
 function instanceIds() {
   return TEAM_HERO_IDS.map((_, i) => i + 1);
+}
+
+// display id for a given instance id (1-based), or undefined.
+function displayIdForInstance(instanceId) {
+  return ALL_HERO_IDS[instanceId - 1];
 }
 
 // { _heros: { <displayId>: { _id, _maxLevel } } } for hero/getAll.
@@ -100,5 +114,6 @@ module.exports = {
   buildBaseAttr,
   buildHerosMap,
   instanceIds,
+  displayIdForInstance,
   buildGetAllHeros,
 };
