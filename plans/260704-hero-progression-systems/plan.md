@@ -33,6 +33,10 @@ Find + populate the per-hero god-evolve star state so cards colour and show star
 ### Phase 3 — Super Ultimate combos  ·  status: pending  ·  detail: phase-03-super-combos.md
 Populate `_superSkillBook` so combo skills unlock.
 
+### Phase 4 — Real hero stats  ·  status: pending  ·  detail: phase-04-real-hero-stats.md
+Replace the uniform 8000 stats in the List with each hero's REAL lv200 base stats, computed server-side
+via the game's own formula (`makeHeroBasicAttr`: heroLevelAttr × quality/type param + evolve + wakeup).
+
 ## Success criteria
 - Affinity panel on hero detail shows linked heroes as owned + link bonuses active.
 - God Evolve / Illustration cards render in colour with stars (not grayscale).
