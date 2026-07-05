@@ -50,7 +50,9 @@
       "Bash(curl -s -o /dev/null -w 'http=%{http_code} bytes=%{size_download} type=%{content_type}\\\\n' --max-time 15 __TRACKED_VAR__/assets/image/public/hero_related/hero_icon_short/hero_icon_1403_short.png)",
       "Bash(curl -s -o /dev/null -w 'http=%{http_code} bytes=%{size_download}\\\\n' --max-time 15 __TRACKED_VAR__/default.res.json)",
       "Bash(env)",
-      "Bash(curl -s \"http://127.0.0.1:8080/api/debug/all\")"
+      "Bash(curl -s \"http://127.0.0.1:8080/api/debug/all\")",
+      "Bash(mkdir -p prisma)",
+      "Bash(npx prisma *)"
     ]
   }
 }

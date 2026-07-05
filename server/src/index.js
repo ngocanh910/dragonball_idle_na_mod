@@ -107,23 +107,29 @@ app.use((err, _req, res, _next) => {
 });
 
 // ── Start ────────────────────────────────────────────────────
-server.listen(config.port, config.host, () => {
-  console.log(`
+// Load the DB-backed game data into memory BEFORE accepting requests,
+// so the synchronous get/list/find API is populated for handlers.
+async function start() {
+  await gameData.init();
+  server.listen(config.port, config.host, () => {
+    console.log(`
 ╔══════════════════════════════════════════════════╗
 ║     DRAGON BALL IDLE — Local Emulator Server     ║
 ╠══════════════════════════════════════════════════╣
 ║  HTTP     : http://${config.host}:${config.port}               ║
 ║  Socket.IO: port ${config.port}                                 ║
 ╠══════════════════════════════════════════════════╣
-║  Endpoints                                       ║
-║    GET  /lzceshi/.../setting_Android.bin         ║
-║    GET  /lzceshi/.../loginchecknative            ║
-║    POST /api                                     ║
-╠══════════════════════════════════════════════════╣
+║  Storage  : SQLite (Prisma) + in-memory index    ║
 ║  Game data: ${gameData.collections().length} collections         ║
 ║  Entries : ${gameData.totalEntries().toLocaleString()}                       ║
 ║  Mods    : ${config.modsEnabled ? 'enabled' : 'disabled'}                     ║
 ╚══════════════════════════════════════════════════╝`);
+  });
+}
+
+start().catch((err) => {
+  console.error('[Server] Failed to start:', err);
+  process.exit(1);
 });
 
 module.exports = { app, server, io };

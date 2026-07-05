@@ -1,0 +1,81 @@
+// ============================================================
+// Dragon Ball Idle — Emulator database schema (SQLite + Prisma)
+// ============================================================
+// Two data domains:
+//   1. Static game data (reverse-engineered) — seeded, read-mostly.
+//   2. Player state — persisted so progress survives restarts.
+// Regenerate client:  npx prisma generate
+// Apply schema:        npx prisma db push
+// Seed:                npm run seed
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ── Static game data (RE'd) ─────────────────────────────────
+
+/// Every decrypted JSON collection, generic. `data` is a JSON string
+/// of one entry. Mirrors the old in-memory game-data.js store so the
+/// repository can expose the same get/list/find API, DB-backed.
+model GameData {
+  id         Int    @id @default(autoincrement())
+  collection String // e.g. "hero", "skill", "heroBook"
+  key        String // entry id/key within the collection
+  data       String // JSON-encoded entry
+
+  @@unique([collection, key])
+  @@index([collection])
+}
+
+/// Real level-200 base stats per hero, extracted via the game's own
+/// getHeroBookDataModel formula (see tools/extract-hero-stats.js).
+model HeroStat {
+  displayId   Int     @id
+  level       Int     @default(200)
+  star        Int     @default(0)
+  evolveLevel Int     @default(200)
+  isRed       Boolean @default(false)
+  hp          Int
+  attack      Int
+  armor       Int
+  speed       Int
+}
+
+// ── Player state (persisted) ────────────────────────────────
+
+/// A player account. One row per emulator user.
+model Player {
+  id        Int          @id @default(autoincrement())
+  nickname  String       @default("Player")
+  headImage Int          @default(1)
+  diamonds  Int          @default(0)
+  coins     Int          @default(0)
+  level     Int          @default(1)
+  vip       Int          @default(0)
+  createdAt DateTime     @default(now())
+  lastLogin DateTime     @default(now())
+  heroes    PlayerHero[]
+}
+
+/// A hero owned by a player. `instanceId` is the id teams reference;
+/// `displayId` selects the hero.json row (art + base stats).
+model PlayerHero {
+  id         Int    @id @default(autoincrement())
+  player     Player @relation(fields: [playerId], references: [id])
+  playerId   Int
+  displayId  Int
+  instanceId Int
+  star       Int    @default(1)
+  level      Int    @default(200)
+  fragment   Int    @default(0)
+
+  @@unique([playerId, instanceId])
+  @@index([playerId])
+}
