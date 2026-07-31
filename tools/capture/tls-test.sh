@@ -3,6 +3,7 @@
 # Usage: ./tls-test.sh            # run mitmdump + adb-snapshot, then drive the app
 set -euo pipefail
 SESSION="tls-test-$(date +%H%M%S)"
+export CAP_SESSION="$SESSION"   # addon reads CAP_SESSION; it ignores --set session=
 node tools/capture/adb-snapshot.mjs "$SESSION" &
 ADB_PID=$!
 trap 'kill $ADB_PID 2>/dev/null' EXIT
