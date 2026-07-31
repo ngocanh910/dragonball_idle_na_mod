@@ -77,7 +77,12 @@ reports/replay-diff-report.md      (% fidelity per endpoint + mismatches)
 
 ### 4.3 Path B — Browser capture (`tools/capture/browser-capture.mjs`)
 - Playwright opens the emulator client (which is the real client) pointed at the
-  **real server domain** (the one already RE'd from the APK).
+  **real server domain**.
+- **Domain source:** the real server URL is NOT in the APK (verified: no server host
+  in `decrypted_assets/`). It is returned dynamically by the real login response as
+  `serverItem.url`. So the domain comes from (a) Path A's first captured login flow,
+  or (b) the user typing it in (they can read it from the app's settings/about, or
+  from a first quick Path-A sniff). B requires a domain to have been obtained first.
 - Intercept `socket.io` frames (page `socket.io-client` connect → `handler.process`
   emit/ack) and HTTP via `page.route`, log to `browser.jsonl` in the same shape as A.
 - Screenshot when the UI changes (poll via `page.screenshot` on a short interval or
@@ -150,7 +155,7 @@ regenerated on demand.
 
 ## 9. Open Questions
 
-- Real server domain for Path B — confirm from the RE'd client (`serverItem.url` /
-  the base URL embedded in `main.min_7eae4d6e.js` or `voyage_extracted`).
+- Real server domain: **not in APK** (verified). Obtained from Path A login response
+  `serverItem.url`, or typed in by the user. B depends on A for this.
 - Whether the live server uses a single socket host for all of `url/dungeonurl/
   chaturl` (likely yes — one host, different room ids) — affects B's endpoint target.
