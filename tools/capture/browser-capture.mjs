@@ -86,30 +86,38 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     window.__REAL_DOMAIN__ = d;
   }, domain);
   await page.goto(`http://127.0.0.1:8080/index.html`);
+  // Register signal handlers BEFORE any long-running promise so Ctrl+C always stops with output.
+  let stopping = false;
+  process.on('SIGINT', () => { if (!stopping) { stopping = true; console.log('\nStopping, writing browser.jsonl.'); } });
+  process.on('SIGTERM', () => { if (!stopping) { stopping = true; console.log('\nStopping, writing browser.jsonl.'); } });
+
   if (process.argv.includes('--auto-login')) {
     // Drive the game's own socket.io protocol via the page's loaded `io`
     // global (the game only connects after manual UI login, which can't be
     // done headless). Same handler.process/ack shape the game uses.
     console.log('Auto-login: emitting handler.process login/enterGame via page io global.');
-    await page.evaluate(async (dom) => {
-      const ioGlobal = await new Promise((resolve, reject) => {
-        const timer = setInterval(() => {
-          if (typeof io !== 'undefined') { clearInterval(timer); resolve(io); }
-          else if (typeof window.__autoLoginDeadline !== 'undefined' && Date.now() > window.__autoLoginDeadline) { clearInterval(timer); reject(new Error('io global not loaded')); }
-        }, 500);
-        window.__autoLoginDeadline = Date.now() + 20000;
-      });
-      const sock = ioGlobal(`http://${dom}`, { transports: ['websocket'] });
-      await new Promise((resolve) => sock.on('connect', resolve));
-      sock.emit('handler.process', { type: 'User', action: 'loginGame', userId: 'browser_user', password: 'game_origin' }, () => {});
-      sock.emit('handler.process', { type: 'User', action: 'enterGame', userId: 'browser_user' }, () => {});
-    }, domain);
+    await Promise.race([
+      page.evaluate(async (dom) => {
+        const ioGlobal = await new Promise((resolve, reject) => {
+          const timer = setInterval(() => {
+            if (typeof io !== 'undefined') { clearInterval(timer); resolve(io); }
+            else if (typeof window.__autoLoginDeadline !== 'undefined' && Date.now() > window.__autoLoginDeadline) { clearInterval(timer); reject(new Error('io global not loaded')); }
+          }, 500);
+          window.__autoLoginDeadline = Date.now() + 20000;
+        });
+        const sock = ioGlobal(`http://${dom}`, { transports: ['websocket'] });
+        await new Promise((resolve) => sock.on('connect', resolve));
+        sock.emit('handler.process', { type: 'User', action: 'loginGame', userId: 'browser_user', password: 'game_origin' }, () => {});
+        sock.emit('handler.process', { type: 'User', action: 'enterGame', userId: 'browser_user' }, () => {});
+      }, domain),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('auto-login timeout (15s)')), 15000)),
+    ]);
   }
   // Manual login in the visible browser, then keep capturing.
   console.log('Capturing. Press Ctrl+C to stop.');
   await new Promise((resolve) => {
-    process.on('SIGINT', () => { console.log('\nStopping, writing browser.jsonl.'); resolve(); });
-    process.on('SIGTERM', () => resolve());
+    if (stopping) resolve();
+    else process.once('SIGINT', () => { stopping = true; resolve(); });
   });
   writeFileSync(join(base, 'browser.jsonl'),
     correlate(frames).map((l) => JSON.stringify(l)).join('\n') + '\n');
