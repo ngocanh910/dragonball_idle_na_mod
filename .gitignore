@@ -56,6 +56,10 @@ Thumbs.db
 tmp/
 /tmp/
 
+# ----- Capture pipeline output (large, regenerable) -----
+captures/
+reports/replay-diff-report.md
+
 # ----- Config backups -----
 assets/config.properties.backup
 assets/config_BS.properties.backup
