@@ -1,0 +1,3 @@
+# Capture pipeline
+
+Producers (`ws-proxy.mjs`, `adb-snapshot.mjs`) write JSONL per session: exchange lines `{ conn, seq, ts, kind: 'exchange', type, action, req, res }` and notify lines `{ conn, seq, ts, kind: 'notify', type, body }`. `normalize.mjs` converts a session's `flows.jsonl` into unified `actions.jsonl` — schema `{ seq, ts, direction: 'req'|'res'|'notify', type, action, body, screenshot?, uiDump? }` (exported as `ACTION_SCHEMA`), req/res of an exchange sharing `seq` with a shot within 250ms attached. Run: `node tools/capture/normalize.mjs <session>/flows.jsonl <output>/actions.jsonl`.
