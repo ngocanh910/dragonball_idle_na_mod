@@ -108,7 +108,9 @@ export function findShot(ts, shotsDir, uiDir) {
   // exact match first, then nearest within window (earliest shot).
   let best = null; let bestDelta = Infinity;
   if (!existsSync(shotsDir)) return best;
-  const fs = readFileSync(`${shotsDir}/.index.json`, 'utf8');
+  const idx = `${shotsDir}/.index.json`;
+  if (!existsSync(idx)) return null;   // no shot index yet (e.g. test fixtures)
+  const fs = readFileSync(idx, 'utf8');
   for (const t of JSON.parse(fs)) {
     const d = Math.abs(t - ts);
     if (d < bestDelta) { bestDelta = d; best = t; }
@@ -144,14 +146,15 @@ Note: `findShot` reads a pre-generated `shots/.index.json` (list of shot timesta
 
 Append to `normalize.mjs`:
 ```js
-import { dirname } from 'node:path';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-const here = dirname(fileURLToPath(import.meta.url));
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const [, , inputPath, outputPath] = process.argv;
-  normalize({ inputPath, shotsDir: `${here}/../../captures`, uiDir: `${here}/../../captures`, outputPath });
+  const dir = dirname(inputPath);   // producer writes next to its own session dir
+  normalize({ inputPath, shotsDir: join(dir, 'shots'), uiDir: join(dir, 'ui'), outputPath });
 }
 ```
+> `dir` is the session dir (`captures/<session>`); shots/ui live as `captures/<session>/shots`.
 Run test again: `node --test tools/capture/normalize.test.mjs` → PASS.
 Manual smoke: `node tools/capture/normalize.mjs /tmp/fake-flows.jsonl /tmp/fake-actions.jsonl` → creates file (may be empty-validated).
 
@@ -673,7 +676,6 @@ Run: `node --test tools/replay/deep-diff.test.mjs` → 3 passed.
 // Writes: reports/replay-diff-report.md
 // ============================================================
 import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { io } from 'socket.io-client';
 import { diffValues, VOLATILE_KEYS } from './deep-diff.mjs';
 
@@ -699,9 +701,7 @@ async function main() {
   for (const a of actions.filter((x) => x.direction === 'req')) {
     if (a.type === 'login') continue; // already replayed
     let got; try { got = await call(socket, a.body); } catch (e) { got = { _error: e.message }; }
-    const expected = typeof a.body?._expect?.data === 'object' ? a.body._expect : {};
-    // diff against the CAPTURED response (a.body.res stored by normalizer? no —
-    // res is a separate line). Use the matching res line:
+    // diff against the CAPTURED response (the matching res line, same seq):
     const resLine = actions.find((x) => x.direction === 'res' && x.seq === a.seq);
     const expectedRes = resLine ? parseExpected(resLine.body) : null;
     const d = expectedRes ? diffValues(expectedRes, got, VOLATILE_KEYS) : { same: null, mismatches: [] };
