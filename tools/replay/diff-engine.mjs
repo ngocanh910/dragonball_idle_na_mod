@@ -31,20 +31,13 @@ function verify(socket) {
   });
 }
 
-// NOTE(diff-engine): strict diff — every key not present in the captured
-// response (extra volatile keys beyond the VOLATILE_KEYS set) counts as a
-// mismatch. We only compare the response body; top-level frame fields
-// (seq, ts, direction, type, action, body) and the req payload are not
-// part of the response shape.
-// lastLoginTime: emulator enterGame emits `lastLoginTime: now` (session
-// timestamp, enter-game-state.js:204) — legitimately differs per session.
+// NOTE(diff-engine): the engine diffs the response body ({ret, data})
+// against the captured res body — no frame keys (seq/ts/direction/type/
+// action/body) ever appear in it, so the brief's 9-key VOLATILE_KEYS
+// applies verbatim. lastLoginTime is added: the emulator enterGame emits
+// `lastLoginTime: now` (enter-game-state.js:204) — a per-session
+// timestamp, same volatility class as _lastLoginTime/serverTime.
 const VOCAB = new Set(VOLATILE_KEYS);
-VOCAB.delete('seq');
-VOCAB.delete('ts');
-VOCAB.delete('direction');
-VOCAB.delete('type');
-VOCAB.delete('action');
-VOCAB.delete('body');
 VOCAB.add('lastLoginTime');
 
 async function main() {
