@@ -59,6 +59,7 @@ tmp/
 # ----- Capture pipeline output (large, regenerable) -----
 captures/
 reports/
+__pycache__/
 
 # ----- Config backups -----
 assets/config.properties.backup
