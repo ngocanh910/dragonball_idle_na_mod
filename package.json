@@ -10,6 +10,7 @@
     "preinstall": "cd server && npm install"
   },
   "dependencies": {
-    "playwright": "^1.61.1"
+    "playwright": "^1.61.1",
+    "socket.io-client": "^2.5.0"
   }
 }
