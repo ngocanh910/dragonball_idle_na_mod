@@ -58,7 +58,7 @@ tmp/
 
 # ----- Capture pipeline output (large, regenerable) -----
 captures/
-reports/replay-diff-report.md
+reports/
 
 # ----- Config backups -----
 assets/config.properties.backup
