@@ -15,8 +15,13 @@ os.makedirs(os.path.join(BASE, 'shots'), exist_ok=True)
 os.makedirs(os.path.join(BASE, 'ui'), exist_ok=True)
 PATH = os.path.join(BASE, 'flows.jsonl')
 SNAP_URL = 'http://127.0.0.1:8790/snap'
+FLAG = os.path.join('captures', '.capture-on')
 _seq = [0]
 _conn_state = {}   # conn id -> { pending: {ack_id: {type, action, req}} }
+
+def _enabled():
+    # Recording toggle: only log frames + snap when captures/.capture-on exists.
+    return os.path.exists(FLAG)
 
 def _write(obj):
     with open(PATH, 'a') as f:
@@ -29,6 +34,9 @@ def _snap(seq):
         pass  # adb snapshotter not running — capture still proceeds
 
 def _log_exchange(state, res_body=None):
+    if not _enabled():
+        state['pending'] = {}   # dropped while off — don't let stale acks leak on re-enable
+        return
     pend = state.pop('pending', {})
     # ack responses carry ack_id; simplest: attach to last pending
     for ack, rec in pend.items():

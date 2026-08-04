@@ -6,6 +6,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const config = require('../config');
 
 let vvcc = null;
 let vvccTc = null;
@@ -13,9 +14,9 @@ let vvccTc = null;
 function load() {
   // Primary: vvcc_fixed.json (clean copy)
   // Fallback: vvcc.json (may have trailing garbage)
-  const vvccFixedPath = path.resolve(__dirname, '..', '..', '..', 'decrypted_assets', 'vvcc_fixed.json');
-  const vvccPath = path.resolve(__dirname, '..', '..', '..', 'decrypted_assets', 'vvcc.json');
-  const vvccTcPath = path.resolve(__dirname, '..', '..', '..', 'decrypted_assets', 'vvcc_tc.json');
+  const vvccFixedPath = path.join(config.decryptedDir, 'vvcc_fixed.json');
+  const vvccPath = path.join(config.decryptedDir, 'vvcc.json');
+  const vvccTcPath = path.join(config.decryptedDir, 'vvcc_tc.json');
 
   vvcc = loadJsonLenient(vvccFixedPath) || loadJsonLenient(vvccPath);
   vvccTc = loadJsonLenient(vvccTcPath);

@@ -1,28 +1,30 @@
 // ============================================================
 // Hero Handler
+// Roster comes from the DB (PlayerHero per user), not hardcoded.
 // ============================================================
 
 const { success } = require('../utils/response');
 const gameData = require('../services/game-data');
-const heroRoster = require('../services/hero-roster');
 const heroStats = require('../services/hero-stats');
+const playerState = require('../services/player-state');
 
-function handle(payload) {
+async function handle(payload) {
   const { action } = payload;
+  const userId = Number(payload.userId) || 1;
+  const state = await playerState.getOrCreate(userId);
 
-  // Hero list — locked to the renderable roster (heroes with real art)
+  // Hero list — from the player's owned heroes (PlayerHero)
   if (!action || action === 'list' || action === 'getList') {
     const heroData = gameData.get('hero') || {};
-    const heros = heroRoster.RENDERABLE_HERO_IDS.map((displayId) => ({
-      ...(heroData[displayId] || heroData[String(displayId)] || {}),
-      heroId: displayId,
-      userId: 1001,
-      level: 50,
-      star: 5,
-      exp: 0,
+    const heros = state.heroes.map((h) => ({
+      ...(heroData[h.displayId] || heroData[String(h.displayId)] || {}),
+      heroId: h.instanceId,
+      userId,
+      level: h.level,
+      star: h.star,
+      exp: h.fragment,
       equipment: {},
     }));
-
     return success({ heros, total: heros.length });
   }
 
@@ -41,21 +43,25 @@ function handle(payload) {
     });
   }
 
-  // Hero image getAll — returns discovered hero list
+  // Hero image getAll — discovered hero list for the codex
   if (action === 'getAll') {
-    // Format expected: { _heros: { id: { _id: n, _maxLevel: n }, ... } }
-    return success({ _heros: heroRoster.buildGetAllHeros() });
+    const heros = {};
+    for (const h of state.heroes) heros[h.displayId] = { _id: h.displayId, _maxLevel: 50 };
+    return success({ _heros: heros });
   }
 
-  // Hero getAttrs — returns attrs for the sent hero ID list.
-  // getAttrsCallBack reads t._attrs[o]/t._baseAttrs[o] positionally and pairs
-  // them with getHero(heros[o]) (instance id), so keys must be the request index.
+  // Hero getAttrs — instance id → display id via the player's roster.
+  // getAttrsCallBack reads t._attrs[o]/t._baseAttrs[o] positionally and
+  // pairs them with getHero(heros[o]) (instance id), so keys must be the
+  // request index.
   if (action === 'getAttrs') {
     const heroIds = payload.heros || [];
+    const byInstance = new Map(state.heroes.map((h) => [h.instanceId, h]));
     const attrs = {};
     const baseAttrs = {};
     heroIds.forEach((instanceId, i) => {
-      const displayId = heroRoster.displayIdForInstance(instanceId);
+      const h = byInstance.get(Number(instanceId));
+      const displayId = h ? h.displayId : instanceId;
       const s = heroStats.byDisplayId(displayId);
       const power = heroStats.powerOf(s);
       attrs[i] = {
@@ -71,7 +77,7 @@ function handle(payload) {
         _damageUp: 0, _exp: 0,
       };
       baseAttrs[i] = {
-        _level: 200, _exp: 0, _power: power,
+        _level: h ? h.level : 200, _exp: 0, _power: power,
         _hp: s.hp, _attack: s.attack, _armor: s.armor, _speed: s.speed,
       };
     });

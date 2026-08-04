@@ -30,7 +30,7 @@ function register(io) {
     // ── handler.process (main RPC) ──────────────────────────
     // The game sends all its API calls through this socket event.
     // Payload format: { type, action, userId, ... }
-    socket.on('handler.process', (data, callback) => {
+    socket.on('handler.process', async (data, callback) => {
       if (logStore.stats) logStore.stats.totalSocketEvents++;
       const start = Date.now();
       let response;
@@ -46,7 +46,7 @@ function register(io) {
 
       try {
         // Try to dispatch via the standard game handler system
-        response = dispatch(data || {});
+        response = await dispatch(data || {});
         if (!response) {
           // If no handler matched, try mod hooks
           response = modHooks.emit('socket:handler.process', data) || { ret: 0, data: '{}' };

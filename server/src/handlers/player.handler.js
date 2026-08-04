@@ -6,11 +6,17 @@
 const { success } = require('../utils/response');
 const config = require('../config');
 const { buildEnterGameState } = require('../services/enter-game-state');
+const playerState = require('../services/player-state');
 
-function handle(payload) {
+async function handle(payload) {
   const { action, type } = payload;
   const actionLower = (action || '').toLowerCase();
   const typeLower = (type || '').toLowerCase();
+
+  // Resolve the acting user (payload.userId, else default to player #1).
+  const userId = Number(payload.userId) || 1;
+  const state = await playerState.getOrCreate(userId);
+  const p = state.player;
 
   // Build the base URL the browser can reach. Prefer the host from the
   // socket handshake / HTTP request (injected as _clientHost); fall back
@@ -24,15 +30,15 @@ function handle(payload) {
   // ── Login ────────────────────────────────────────────────────
   if (!action || actionLower === 'login' || actionLower === 'logingame') {
     return success({
-      userId: payload.userId || 1001,
+      userId,
       serverId: config.defaultServerId,
       serverName: config.serverName,
       sign: 'local_signature',
-      nickname: 'Player',
-      level: 50,
-      vip: 5,
-      gold: 999999,
-      diamond: 99999,
+      nickname: p.nickname,
+      level: p.level,
+      vip: p.vip,
+      gold: playerState.getItem(state, playerState.ITEM_GOLD),
+      diamond: playerState.getItem(state, playerState.ITEM_DIAMOND),
       stamina: 120,
       exp: 0,
       fightPower: 50000,
@@ -86,22 +92,22 @@ function handle(payload) {
   // required structure is built by enter-game-state to avoid a client
   // crash on undefined._id / ._curLess / etc.
   if (actionLower === 'entergame') {
-    return success(buildEnterGameState(payload));
+    return success(buildEnterGameState(payload, state));
   }
 
   // ── Player info ──────────────────────────────────────────────
   if (actionLower === 'info' || actionLower === 'getinfo') {
     return success({
-      userId: 1001,
-      nickname: 'Player',
-      level: 50,
-      vip: 5,
-      gold: 999999,
-      diamond: 99999,
+      userId,
+      nickname: p.nickname,
+      level: p.level,
+      vip: p.vip,
+      gold: playerState.getItem(state, playerState.ITEM_GOLD),
+      diamond: playerState.getItem(state, playerState.ITEM_DIAMOND),
       stamina: 120,
       exp: 0,
       fightPower: 50000,
-      avatar: 1,
+      avatar: p.headImage,
     });
   }
 

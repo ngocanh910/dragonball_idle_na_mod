@@ -129,12 +129,30 @@
       //    Sending the raw purchased amount would silently overwrite
       //    the balance instead of adding to it.
       var current = window.ItemsCommonSingleton.getInstance().getItemNum(101); // DIAMONDID
+      // VIP state is returned by the recharge handler (diamond × vipExpPara).
+      // Grant it here so the level/exp shown in the VIP panel stays in sync
+      // with the server (which computes the level-up server-side).
+      var vipItems = {};
+      var v = data && data.vip;
+      if (v) {
+        var lvl = window.ItemsCommonSingleton.getInstance().getItemNum(106); // PLAYERVIPLEVELID
+        var exp = window.ItemsCommonSingleton.getInstance().getItemNum(105); // PLAYERVIPEXPERIENCEID
+        var all = window.ItemsCommonSingleton.getInstance().getItemNum(107); // PLAYERVIPEXPALLID
+        vipItems = {
+          105: { _id: 105, _num: v.exp },
+          106: { _id: 106, _num: v.level },
+          107: { _id: 107, _num: v.expAll },
+        };
+      }
       window.ts.notifyData({
         action: 'payFinish',
         _code: 0,
         _detail: {
           _changeInfo: {
-            _items: { 101: { _id: 101, _num: current + diamond } },
+            _items: Object.assign(
+              { 101: { _id: 101, _num: current + diamond } },
+              vipItems
+            ),
           },
         },
       });

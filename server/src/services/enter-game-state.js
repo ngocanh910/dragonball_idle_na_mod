@@ -21,10 +21,17 @@
  * @param {object} payload - The enterGame request payload.
  * @returns {object} Game-state object safe for UserDataParser.saveUserData.
  */
-const heroRoster = require('./hero-roster');
+const heroStats = require('./hero-stats');
+const playerState = require('./player-state');
 
-function buildEnterGameState(payload) {
-  const userId = payload.userId || 1001;
+/**
+ * @param {object} payload - The enterGame request payload.
+ * @param {object} state - DB-backed player state (from playerState.getOrCreate).
+ * @returns {object} Game-state object safe for UserDataParser.saveUserData.
+ */
+function buildEnterGameState(payload, state) {
+  const userId = state ? state.player.id : (Number(payload.userId) || 1);
+  const p = state ? state.player : { nickname: 'Player', headImage: 1, vip: 0 };
   const now = Math.floor(Date.now() / 1000);
 
   return {
@@ -32,8 +39,8 @@ function buildEnterGameState(payload) {
     user: {
       _id: userId,
       _pwd: '',
-      _nickName: 'Player',
-      _headImage: 1,
+      _nickName: p.nickname,
+      _headImage: p.headImage,
       _lastLoginTime: now,
       _createTime: now,
       _bulletinVersions: {},
@@ -68,18 +75,18 @@ function buildEnterGameState(payload) {
     // level-200 threshold (userUpgrade.json expNeeded) so the level/exp
     // pair is internally consistent instead of showing 200 with 0 exp.
     totalProps: {
-      _items: {
-        1: { _id: 104, _num: 200 }, // PLAYERLEVELID
-        2: { _id: 103, _num: 4659000 }, // PLAYEREXPERIENCEID
-      },
+      // Currencies + player level + VIP from the DB (items 101..107).
+      // VIP level must stay 1..18 so the unguarded idleVipPlus[level]
+      // read on the home screen works.
+      _items: state ? playerState.currencyItems(state) : {},
     },
     backpackLevel: 1,
 
     // ── HerosManager.readByData: e.heros._heros (for-in) ───────
-    // Roster is locked to heroes with real bundled art (see
-    // services/hero-roster.js). SetHeroDataToModel reads each entry.
+    // SetHeroDataToModel reads each entry. Roster comes from the
+    // player's DB heroes (PlayerHero), keyed by instance id.
     heros: {
-      _heros: heroRoster.buildHerosMap(),
+      _heros: buildHerosMap(state),
     },
 
     // ── initSuperSkill: e.superSkill.length ────────────────────
@@ -147,7 +154,7 @@ function buildEnterGameState(payload) {
     lastTeam: {
       _lastTeamInfo: {
         '9': {
-          _team: heroRoster.instanceIds().map((id, pos) => ({
+          _team: teamInstanceIds(state).map((id, pos) => ({
             _heroId: id,
             _position: pos,
           })),
@@ -188,6 +195,11 @@ function buildEnterGameState(payload) {
     // a priced item.
     currency: 'USD',
     channelSpecial: {},
+
+    // ── e.vipLog && WelfareInfoManager.setVipLogList(e.vipLog) ──
+    // Each entry { _displayId, _userName } is rendered via
+    // noticeContent.json content (text placeholder). Empty = no log.
+    vipLog: [],
     // Guarded fields (will be checked with e.xxx && before use)
     // vipLog, cardLog, guide, clickSystem, giftInfo, monthCard,
     // recharge, timesInfo, userDownloadReward, timeMachine, etc.
@@ -203,6 +215,50 @@ function buildEnterGameState(payload) {
     loginDays: 1,
     lastLoginTime: now,
   };
+}
+
+/**
+ * Build the hero map keyed by instance id, as HerosManager.readByData
+ * expects. Each entry carries the hero's DB level/star and the real
+ * level-200 base attrs (hero-stats).
+ */
+function buildHerosMap(state) {
+  const map = {};
+  const heroes = state ? state.heroes : [];
+  for (const h of heroes) {
+    const s = heroStats.byDisplayId(h.displayId);
+    const power = heroStats.powerOf(s);
+    map[h.instanceId] = {
+      _heroId: h.instanceId,
+      _heroDisplayId: h.displayId,
+      _heroStar: h.star,
+      _heroTag: '',
+      _fragment: h.fragment,
+      _expeditionMaxLevel: 0,
+      _superSkillResetCount: 0,
+      _potentialResetCount: 0,
+      _superSkillLevel: [0, 0, 0],
+      _potentialLevel: [0, 0, 0, 0],
+      _heroBaseAttr: {
+        _level: h.level, _exp: 0, _power: power,
+        _hp: s.hp, _attack: s.attack, _armor: s.armor, _speed: s.speed,
+        _hit: 0, _dodge: 0, _block: 0, _damageReduce: 0, _armorBreak: 0,
+        _controlResist: 0, _skillDamage: 0, _criticalDamage: 0,
+        _blockEffect: 0, _critical: 0, _criticalResist: 0, _trueDamage: 0,
+        _energy: 0, _extraArmor: 0, _hpPercent: 0, _armorPercent: 0,
+        _attackPercent: 0, _speedPercent: 0, _orghp: s.hp, _superDamage: 0,
+        _healPlus: 0, _healerPlus: 0, _damageDown: 0, _shielderPlus: 0,
+        _damageUp: 0,
+      },
+    };
+  }
+  return map;
+}
+
+/** First 4 owned heroes' instance ids for the starting hangup team. */
+function teamInstanceIds(state) {
+  const heroes = state ? state.heroes : [];
+  return heroes.slice(0, 4).map((h) => h.instanceId);
 }
 
 module.exports = { buildEnterGameState };

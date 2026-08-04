@@ -4,15 +4,18 @@
 
 const { success } = require('../utils/response');
 const gameData = require('../services/game-data');
+const playerState = require('../services/player-state');
 
-function handle(payload) {
+async function handle(payload) {
   const { action } = payload;
+  const userId = Number(payload.userId) || 1;
+  const state = await playerState.getOrCreate(userId);
 
   if (!action || action === 'list' || action === 'getList') {
     const equipData = gameData.get('equip') || {};
     const equips = Object.entries(equipData).slice(0, 20).map(([id, eq]) => ({
       id: parseInt(id, 10),
-      level: 50,
+      level: state.player.level,
       star: 3,
       ...(typeof eq === 'object' ? eq : {}),
     }));

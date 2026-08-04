@@ -74,12 +74,43 @@ async function seedHeroStats() {
   console.log(`[seed] HeroStat: ${rows.length} heroes`);
 }
 
-async function seedDefaultPlayer() {
+async function seedPlayers() {
   await prisma.playerHero.deleteMany();
+  await prisma.playerItem.deleteMany();
   await prisma.player.deleteMany();
-  const player = await prisma.player.create({
-    data: { nickname: 'Player', diamonds: 999999, coins: 999999, level: 200, vip: 15 },
+
+  // Special account: can buy any item free (admin flag).
+  const admin = await prisma.player.create({
+    data: { id: 1001, nickname: 'admin', admin: true, diamonds: 999999, coins: 999999, level: 200, vip: 15 },
   });
+
+  // Default player (id 1): rich + high VIP, full roster.
+  const player = await prisma.player.create({
+    data: { id: 1, nickname: 'Player', diamonds: 999999, coins: 999999, level: 200, vip: 15 },
+  });
+
+  // Seed currencies + VIP as items so DB state matches the game's
+  // ItemsCommonSingleton (items 101..107). VIP 15 → expAll threshold.
+  const vipExpAll = seedVipCumulative(15);
+  const items = [
+    { playerId: 1, itemId: 101, num: 999999 }, // diamond
+    { playerId: 1, itemId: 102, num: 999999 }, // gold
+    { playerId: 1, itemId: 103, num: 4659000 }, // player exp (lvl200)
+    { playerId: 1, itemId: 104, num: 200 }, // player level
+    { playerId: 1, itemId: 105, num: 0 }, // vip exp
+    { playerId: 1, itemId: 106, num: 15 }, // vip level
+    { playerId: 1, itemId: 107, num: vipExpAll }, // vip exp all
+  ];
+  const adminItems = [
+    { playerId: admin.id, itemId: 101, num: 999999 },
+    { playerId: admin.id, itemId: 102, num: 999999 },
+    { playerId: admin.id, itemId: 103, num: 4659000 },
+    { playerId: admin.id, itemId: 104, num: 200 },
+    { playerId: admin.id, itemId: 105, num: 0 },
+    { playerId: admin.id, itemId: 106, num: 15 },
+    { playerId: admin.id, itemId: 107, num: vipExpAll },
+  ];
+  await prisma.playerItem.createMany({ data: [...items, ...adminItems] });
 
   const heroBook = JSON.parse(fs.readFileSync(HERO_BOOK, 'utf8'));
   const bookIds = Object.keys(heroBook).map(Number).filter((n) => !Number.isNaN(n));
@@ -87,22 +118,34 @@ async function seedDefaultPlayer() {
     ...TEAM_HERO_IDS.filter((id) => bookIds.includes(id)),
     ...bookIds.filter((id) => !TEAM_HERO_IDS.includes(id)),
   ];
-  const rows = ordered.map((displayId, i) => ({
-    playerId: player.id,
+  const heroRows = (pid) => ordered.map((displayId, i) => ({
+    playerId: pid,
     displayId,
     instanceId: i + 1,
     star: Math.min(Number(heroBook[displayId] && heroBook[displayId].star) || 1, 10),
     level: 200,
   }));
-  await prisma.playerHero.createMany({ data: rows });
-  console.log(`[seed] Player #${player.id} + ${rows.length} owned heroes`);
+  // Give both the default player and the admin user the full roster.
+  await prisma.playerHero.createMany({ data: [...heroRows(player.id), ...heroRows(admin.id)] });
+  console.log(`[seed] Player #1 + #${admin.id} + ${ordered.length} owned heroes each`);
+}
+
+/** Cumulative VIP exp needed to reach `level` (sum of vipUpgrade expNeeded). */
+function seedVipCumulative(level) {
+  const vipUpgrade = JSON.parse(fs.readFileSync(path.join(JSON_DIR, 'vipUpgrade.json'), 'utf8'));
+  let cum = 0;
+  for (let l = 0; l < level; l++) {
+    const info = vipUpgrade[String(l)];
+    if (info && info.expNeeded) cum += info.expNeeded;
+  }
+  return cum;
 }
 
 (async () => {
   console.time('[seed] done');
   await seedGameData();
   await seedHeroStats();
-  await seedDefaultPlayer();
+  await seedPlayers();
   console.timeEnd('[seed] done');
   await prisma.$disconnect();
 })().catch(async (e) => {

@@ -51,6 +51,7 @@ model HeroStat {
 // ── Player state (persisted) ────────────────────────────────
 
 /// A player account. One row per emulator user.
+/// `admin` = special account that can buy any item free.
 model Player {
   id        Int          @id @default(autoincrement())
   nickname  String       @default("Player")
@@ -59,9 +60,24 @@ model Player {
   coins     Int          @default(0)
   level     Int          @default(1)
   vip       Int          @default(0)
+  admin     Boolean      @default(false)
   createdAt DateTime     @default(now())
   lastLogin DateTime     @default(now())
   heroes    PlayerHero[]
+  items     PlayerItem[]
+}
+
+/// Items owned by a player (inventory). `num` is the absolute count,
+/// matching the game's ItemsCommonSingleton (items keyed by item id).
+model PlayerItem {
+  id       Int    @id @default(autoincrement())
+  player   Player @relation(fields: [playerId], references: [id])
+  playerId Int
+  itemId   Int
+  num      Int    @default(0)
+
+  @@unique([playerId, itemId])
+  @@index([playerId])
 }
 
 /// A hero owned by a player. `instanceId` is the id teams reference;

@@ -319,13 +319,13 @@ describe('Game API — login action', () => {
     assert.strictEqual(data.serverItem.online, true);
   });
 
-  it('Login with no userId defaults to 1001', async () => {
+  it('Login with no userId defaults to player #1', async () => {
     const payload = { type: 'login', action: 'login' };
     const r = await post('/api', payload, 'form');
     const body = JSON.parse(r.body);
     const data = JSON.parse(body.data);
 
-    assert.strictEqual(data.userId, 1001);
+    assert.strictEqual(data.userId, 1);
   });
 
   it('Login response includes player stats', async () => {

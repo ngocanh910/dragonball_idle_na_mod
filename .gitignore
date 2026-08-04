@@ -57,7 +57,8 @@ tmp/
 /tmp/
 
 # ----- Capture pipeline output (large, regenerable) -----
-captures/
+captures/*
+!captures/.gitkeep
 reports/
 __pycache__/
 

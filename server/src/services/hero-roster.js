@@ -11,10 +11,9 @@
 // ============================================================
 
 const path = require('path');
+const config = require('../config');
 const heroStats = require('./hero-stats');
-const heroBook = require(
-  path.resolve(__dirname, '..', '..', '..', 'decrypted_assets', 'game_source', 'resource', 'json', 'heroBook.json')
-);
+const heroBook = require(path.join(config.gameDataDir, 'heroBook.json'));
 
 // Heroes placed in the starting battle team (formation has limited
 // slots; these four have long-verified stand + picture art).
