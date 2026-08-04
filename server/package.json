@@ -6,14 +6,25 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "DEBUG=true node src/index.js",
-    "debug": "node --inspect src/index.js"
+    "debug": "node --inspect src/index.js",
+    "seed": "node prisma/seed.js",
+    "test": "node --test test/",
+    "test:smoke": "node --test test/smoke.test.js",
+    "test:login": "node --test test/login.test.js"
   },
-  "keywords": ["dragonball", "idle", "emulator", "mod"],
+  "keywords": [
+    "dragonball",
+    "idle",
+    "emulator",
+    "mod"
+  ],
   "license": "MIT",
   "dependencies": {
+    "@prisma/client": "^6.19.3",
     "cors": "^2.8.5",
     "express": "^4.18.2",
     "lz-string": "^1.5.0",
+    "prisma": "^6.19.3",
     "socket.io": "^2.5.0"
   }
 }

@@ -1,0 +1,32 @@
+[log] [BrowserBoot] Native bridge mock installed
+[log] [Loader] Loading 14 scripts...
+[log] [BrowserBoot] Re-applied mocks after Egret engine init
+[log] [Loader] All 14 scripts loaded
+[log] [Loader] Booting Egret engine...
+[log] [BrowserBoot] Registered callback: startTsGame
+[log] [BrowserBoot] Game requested startTsGame — triggering boot
+[log] [BrowserBoot] Invoking startTsGame callback
+[log] Egret Engine Version: 5.2.29
+[warning] [.WebGL-0x228c001bda00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+[warning] [.WebGL-0x228c001bda00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+[warning] [.WebGL-0x228c001bda00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+[warning] [.WebGL-0x228c001bda00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)
+[log] 7/2/2026, 2:58:17 AM [Logger] {nickName: username}
+[log] 设置场景大小为 {w: 750, h: 1334}
+[info] DragonBones: 5.6.300
+Website: http://dragonbones.com/
+Source and Demo: https://github.com/DragonBones/
+[log] 7/2/2026, 2:58:17 AM [Logger] 加载完了 清除
+[log] 7/2/2026, 2:58:17 AM [Logger] 删除资源结束:1782935897448
+[log] 7/2/2026, 2:58:17 AM [Logger] 创建子物体成功:1782935897452
+[log] 7/2/2026, 2:58:17 AM [Logger] children create
+[log] 7/2/2026, 2:58:17 AM [TEST] Can't find language  language-cn_json
+[log] 7/2/2026, 2:58:17 AM [TEST] Can't find language  language-cn_json
+[log] 7/2/2026, 2:58:17 AM [TEST] Can't find language  language-cn_json
+[log] 7/2/2026, 2:58:17 AM [TEST] Can't find language  language-cn_json
+[log] 7/2/2026, 2:58:17 AM [TEST] Can't find language  language-cn_json
+[log] 7/2/2026, 2:58:17 AM [TEST] Can't find language  language-cn_json
+[log] 7/2/2026, 2:58:17 AM [TEST] Can't find language  language-cn_json
+[log] 设置图片结束
+[log] 无渠道登录
+[PAGE_ERROR] Cannot read properties of null (reading '201')

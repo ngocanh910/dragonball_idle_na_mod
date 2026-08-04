@@ -9,6 +9,11 @@ const item = require('./item.handler');
 const skill = require('./skill.handler');
 const equipment = require('./equipment.handler');
 const guild = require('./guild.handler');
+const hangup = require('./hangup.handler');
+const entrust = require('./entrust.handler');
+const recharge = require('./recharge.handler');
+const vip = require('./vip.handler');
+const gift = require('./gift.handler');
 const fallback = require('./fallback.handler');
 
 // Domain handler lookup: maps request type → handler module
@@ -17,6 +22,7 @@ const HANDLERS = {
   player,
   user: player,
   hero,
+  heroImage: hero,   // heroImage/getAll → populates the codex "already gained" list
   backpack: item,
   item,
   bag: item,
@@ -29,20 +35,28 @@ const HANDLERS = {
   guildBoss: guild,
   chat: guild,
   mail: guild,
+  hangup,
+  entrust,
+  recharge,
+  vip,
+  gift,
 };
 
 /**
  * Route a game API request to the appropriate handler.
+ * Type matching is case-insensitive ("User" → "user").
+ * Async — handlers may persist state to the DB.
  *
  * @param {object} payload - The parsed request body { type, action, … }
- * @returns {object|null} Response object, or null if unhandled.
+ * @returns {Promise<object>} Response object.
  */
-function dispatch(payload) {
+async function dispatch(payload) {
   const { type, action } = payload;
-  const handler = HANDLERS[type];
+  const typeLower = (type || '').toLowerCase();
+  const handler = HANDLERS[type] || HANDLERS[typeLower];
 
   if (handler) {
-    const result = handler.handle(payload);
+    const result = await handler.handle(payload);
     if (result) return result;
   }
 
